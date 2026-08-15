@@ -9,3 +9,7 @@ dist
 # Waku Cloudflare deployment artifacts
 .wrangler/
 wrangler.jsonc
+
+# Local Drizzle dev database (production uses the D1 `DB` binding above)
+dev.db
+src/db/dev.db
