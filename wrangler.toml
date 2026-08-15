@@ -22,6 +22,7 @@ type = "ESModule"
 globs = ["**/*.js", "**/*.mjs"]
 
 no_bundle = true
+migrations_dir = "src/lib/db/migrations"
 
 # Cloudflare D1 (SQLite) binding for Drizzle. The `DB` binding name matches the
 # accessor used in `src/lib/db/client.ts` (getCloudflareContext().env.DB).
