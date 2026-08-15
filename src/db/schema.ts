@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { integer, sqliteTable, text } from "drizzle-orm/sqlite-core";
 
 /**
@@ -13,8 +14,10 @@ export const users = sqliteTable("users", {
   name: text("name", { length: 100 }),
   createdAt: integer("created_at", { mode: "timestamp" })
     .notNull()
-    .default(() => Date.now()),
+    // `mode: "timestamp"` stores epoch SECONDS in SQLite and reads them back as
+    // a `Date` (via `new Date(seconds * 1e3)`), so the SQL default must yield seconds.
+    .default(sql`(cast(strftime('%s', 'now') as integer))`),
   updatedAt: integer("updated_at", { mode: "timestamp" })
     .notNull()
-    .default(() => Date.now()),
+    .default(sql`(cast(strftime('%s', 'now') as integer))`),
 });

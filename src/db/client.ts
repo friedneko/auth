@@ -1,6 +1,5 @@
 import { drizzle, type DrizzleD1Database } from "drizzle-orm/d1";
 import * as schema from "./schema";
-import type { D1Database } from "cloudflare:workers";
 
 export type Database = DrizzleD1Database<typeof schema>;
 
@@ -17,7 +16,7 @@ export function getDb(d1: D1Database): Database {
 
 /**
  * Resolve a Drizzle client from the live Cloudflare Worker environment via
- * `getCloudflareContext()` (the `cloudflare:workers` module).
+ * the `env` binding of the `cloudflare:workers` module.
  *
  * Note on Waku: its Cloudflare adapter mirrors only *string* env values onto
  * `globalThis.__WAKU_SERVER_ENV__` (`getEnv`), so the `D1Database` object
@@ -27,8 +26,8 @@ export function getDb(d1: D1Database): Database {
  * binding — exercise DB-backed server actions under `pnpm preview:cloudflare`.
  */
 export async function getDbFromEnv(): Promise<Database> {
-  const { getCloudflareContext } = await import(/* @vite-ignore */ "cloudflare:workers");
-  const d1 = getCloudflareContext().env.DB as D1Database | undefined;
+  const { env } = await import(/* @vite-ignore */ "cloudflare:workers");
+  const d1 = env.DB;
   if (!d1) {
     throw new Error(
       "D1 'DB' binding not found on the Cloudflare context. Add a " +

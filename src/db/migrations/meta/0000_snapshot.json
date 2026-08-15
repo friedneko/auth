@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "8906f2c3-330e-4394-a46b-c57fc73e1144",
+  "id": "13c27ab1-7e84-49c4-bd36-5a2cd323e080",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
     "users": {
@@ -33,14 +33,16 @@
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "(cast(strftime('%s', 'now') as integer))"
         },
         "updated_at": {
           "name": "updated_at",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
-          "autoincrement": false
+          "autoincrement": false,
+          "default": "(cast(strftime('%s', 'now') as integer))"
         }
       },
       "indexes": {
