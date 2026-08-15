@@ -6,7 +6,7 @@
  */
 
 import { hashPassword } from "@/lib/idp/crypto";
-import { getDb, getIssuer } from "@/lib/idp/env";
+import { getDb, getIssuer } from "@/lib/env";
 import { users } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { createSession } from "@/lib/idp/session";

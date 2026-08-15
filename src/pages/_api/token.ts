@@ -22,7 +22,7 @@ import {
   getUser,
 } from "@/lib/idp/db";
 import { GRANT_TYPE, OAUTH_ERROR, REFRESH_TOKEN_TTL, ACCESS_TOKEN_TTL } from "@/lib/idp/constants";
-import { getIssuer } from "@/lib/idp/env";
+import { getIssuer } from "@/lib/env";
 
 // ---------------------------------------------------------------------------
 // Body parsing

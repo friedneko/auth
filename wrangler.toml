@@ -35,12 +35,10 @@ database_name = "auth_db"
 
 # ---------------------------------------------------------------------------
 # KV namespace for caching signing keys (D1 remains the source of truth).
-# Uncomment and fill in IDs after running:
-#   wrangler kv namespace create IDP_KV
-#   wrangler kv namespace create IDP_KV --preview-env
+# Created via: wrangler kv namespace create auth_kv --binding AUTH_KV
 # ---------------------------------------------------------------------------
 # [[kv_namespaces]]
-# binding = "KV"
+# binding = "AUTH_KV"
 # id = "your-kv-id-here"
 # preview_id = "your-preview-id-here"
 

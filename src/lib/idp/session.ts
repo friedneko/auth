@@ -17,7 +17,7 @@
 
 import { createId } from "@/lib/utils";
 import { getSigningKey, createSessionJwt, verifySessionJwt } from "./crypto";
-import { getDb } from "./env";
+import { getDb } from "../env";
 import { getSessionToken } from "./cookies";
 import { oauthSessions, users } from "@/lib/db/schema";
 import { and, eq, gt } from "drizzle-orm";

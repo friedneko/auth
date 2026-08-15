@@ -23,8 +23,8 @@ import {
 } from "jose";
 import { SIGNING_ALGORITHM, PBKDF2_ITERATIONS, SESSION_JWT_TTL } from "./constants";
 import type { SessionTokenPayload, SigningKey } from "./types";
-import { getDb } from "./env";
-import { getKv } from "./env";
+import { getDb } from "../env";
+import { getKv } from "../env";
 import { oauthKeys } from "@/lib/db/schema";
 import { asc } from "drizzle-orm";
 

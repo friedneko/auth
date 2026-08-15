@@ -7,7 +7,7 @@
 
 import { verifyJwt, getSigningKey } from "@/lib/idp/crypto";
 import { getUser } from "@/lib/idp/db";
-import { getIssuer } from "@/lib/idp/env";
+import { getIssuer } from "@/lib/env";
 import { OAUTH_ERROR } from "@/lib/idp/constants";
 
 export const GET = async (req: Request): Promise<Response> => {

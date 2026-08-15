@@ -9,7 +9,7 @@
  * binding configuration in `wrangler.toml`.
  *
  * - `DB`          — Cloudflare D1 (SQLite) for persistent storage
- * - `KV`          — KV namespace for caching signing keys (D1 is the source of truth)
+ * - `AUTH_KV`     — KV namespace for caching signing keys (D1 is source of truth)
  *
  * The `D1Database` and `KVNamespace` types are ambient globals provided by
  * `@cloudflare/workers-types` (loaded via the reference directive above).
@@ -17,6 +17,6 @@
 declare namespace Cloudflare {
   interface Env {
     DB?: D1Database;
-    KV?: KVNamespace;
+    AUTH_KV?: KVNamespace;
   }
 }

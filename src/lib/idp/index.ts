@@ -6,7 +6,7 @@
 
 // Core utilities
 export * from "./constants";
-export { getIssuer, getDb } from "./env";
+export { getIssuer, getDb } from "../env";
 
 // Types
 export type {

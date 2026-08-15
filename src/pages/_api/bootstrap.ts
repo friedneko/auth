@@ -14,7 +14,7 @@
 
 import { hashSecret } from "@/lib/idp/crypto";
 import { oauthClients } from "@/lib/db/schema";
-import { getDb } from "@/lib/idp/env";
+import { getDb } from "@/lib/env";
 
 export const POST = async (req: Request): Promise<Response> => {
   // Only allow from localhost (development)

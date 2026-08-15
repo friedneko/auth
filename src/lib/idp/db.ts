@@ -6,7 +6,7 @@
 import { and, eq, gt, sql } from "drizzle-orm";
 import { oauthClients, oauthGrants, oauthAuthorizations, users } from "@/lib/db/schema";
 import type { OAuthClient, OAuthGrant } from "./types";
-import { getDb } from "./env";
+import { getDb } from "../env";
 import { verifySecret } from "./crypto";
 
 // ---------------------------------------------------------------------------
