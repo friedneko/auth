@@ -19,7 +19,7 @@ globs = ["**/*.js", "**/*.mjs"]
 no_bundle = true
 
 # Cloudflare D1 (SQLite) binding for Drizzle. The `DB` binding name matches the
-# accessor used in `src/db/client.ts` (getCloudflareContext().env.DB).
+# accessor used in `src/lib/db/client.ts` (getCloudflareContext().env.DB).
 # `database_name` is the D1 instance name in your Cloudflare account; create it
 # with `wrangler d1 create auth_db` and rename to match. `wrangler dev` /
 # `pnpm preview:cloudflare` auto-provision an ephemeral preview D1 when one
