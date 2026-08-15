@@ -122,3 +122,31 @@ export const schema = {
   oauthKeys,
   oauthAuthorizations,
 };
+
+// ---------------------------------------------------------------------------
+// RBAC Tables
+// ---------------------------------------------------------------------------
+
+export const roles = sqliteTable("roles", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  permissions: text("permissions").notNull().default("{}"), // JSON: {"can_manage_clients": true, ...}
+  createdAt: integer("created_at").notNull().default(1),
+});
+
+export const userRoles = sqliteTable(
+  "user_roles",
+  {
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    roleId: text("role_id")
+      .notNull()
+      .references(() => roles.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at").notNull().default(1),
+  },
+  (t) => ({
+    pk: primaryKey(t.userId, t.roleId),
+  }),
+);

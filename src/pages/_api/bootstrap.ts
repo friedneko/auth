@@ -2,14 +2,12 @@
  * Bootstrap script — register an initial OAuth client.
  *
  * Usage:
- *   wrangler d1 execute auth_db --file scripts/bootstrap.sql
- *   # or dynamically via the API:
- *   curl -X POST https://<your-worker>.workers.dev/bootstrap \
+ *   curl -X POST https://auth.vwinter.moe/bootstrap \
  *     -H "Content-Type: application/json" \
- *     -d '{"client_id":"my-app","client_secret":"secret","redirect_uris":["https://app.example.com/callback"]}'
+ *     -d '{"client_id":"my-app","redirect_uris":["https://app.example.com/callback"]}'
  *
- * The bootstrap endpoint is ONLY available locally (localhost/127.0.0.1) and
- * uses an admin key from the WRANGLER secret or env var IDP_ADMIN_KEY.
+ * Note: This endpoint is disabled in production for security.
+ * For initial setup, use: wrangler d1 execute auth_db --file=scripts/bootstrap.sql
  */
 
 import { hashSecret } from "@/lib/idp/crypto";
@@ -21,10 +19,14 @@ export const POST = async (req: Request): Promise<Response> => {
   const url = new URL(req.url);
   const hostname = url.hostname;
   if (hostname !== "localhost" && hostname !== "127.0.0.1" && hostname !== "[::1]") {
-    return new Response(JSON.stringify({ error: "not available in production" }), {
-      status: 404,
-      headers: { "content-type": "application/json" },
-    });
+    return new Response(
+      JSON.stringify({
+        error: "not_available",
+        error_description:
+          "Bootstrap endpoint only available in development. Use: wrangler d1 execute auth_db --file=scripts/bootstrap.sql",
+      }),
+      { status: 403, headers: { "content-type": "application/json" } },
+    );
   }
 
   const body = (await req.json().catch(() => null)) as {

@@ -1,7 +1,7 @@
 /**
- * OIDC / OAuth 2.1 IDP — barrel export for shared utilities.
+ * OIDC / OAuth 2.1 IDP — barrel export for shared utility modules.
  *
- * Endpoint-specific handler logic lives directly in `src/pages/_api/`.
+ * Route-specific handlers live directly in src/pages/_api/
  */
 
 // Core utilities
@@ -80,3 +80,7 @@ export {
 
 // Discovery document builder
 export { buildDiscoveryDocument } from "./discovery";
+
+// RBAC utilities
+export { userHasPermission, requestHasPermission, assignRole, getUserRoles } from "./rbac";
+export type { IdpPermission } from "./rbac";

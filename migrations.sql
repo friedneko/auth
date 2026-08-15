@@ -72,3 +72,24 @@ CREATE TABLE IF NOT EXISTS `oauth_refresh_tokens` (
   FOREIGN KEY (`client_id`) REFERENCES `oauth_clients`(`id`) ON UPDATE no action ON DELETE cascade,
   FOREIGN KEY (`user_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE cascade
 );
+
+-- RBAC tables
+CREATE TABLE IF NOT EXISTS `roles` (
+  `id` text PRIMARY KEY NOT NULL,
+  `name` text NOT NULL,
+  `description` text,
+  `permissions` text NOT NULL DEFAULT '{}',
+  `created_at` integer NOT NULL DEFAULT (cast(strftime('%s', 'now') as integer))
+);
+CREATE UNIQUE INDEX IF NOT EXISTS `roles_name_unique` ON `roles` (`name`);
+
+CREATE TABLE IF NOT EXISTS `user_roles` (
+  `user_id` integer NOT NULL,
+  `role_id` text NOT NULL,
+  `created_at` integer NOT NULL DEFAULT (cast(strftime('%s', 'now') as integer)),
+  PRIMARY KEY(`user_id`, `role_id`)
+);
+
+INSERT OR IGNORE INTO `roles` (id, name, description, permissions) VALUES
+  ('role:admin', 'Admin', 'Full access to the IDP', '{"*": true}'),
+  ('role:user', 'User', 'Regular IDP user', '{"use_authorize": true, "use_token": true}');
