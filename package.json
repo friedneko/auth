@@ -1,6 +1,6 @@
 {
   "name": "auth",
-  "version": "0.0.22",
+  "version": "0.0.23",
   "private": true,
   "type": "module",
   "scripts": {
@@ -16,8 +16,8 @@
     "format": "oxfmt .",
     "format:check": "oxfmt --check .",
     "prepare": ".githooks/hooks on",
-    "deploy:cloudflare": "CLOUDFLARE=1 waku build && npx drizzle-kit push && wrangler deploy",
-    "preview:cloudflare": "CLOUDFLARE=1 waku build && npx drizzle-kit push && wrangler dev"
+    "deploy:cloudflare": "CLOUDFLARE=1 waku build && wrangler d1 execute auth_db --remote --file=migrations.sql && wrangler deploy",
+    "preview:cloudflare": "CLOUDFLARE=1 waku build && wrangler d1 execute auth_db --local --file=migrations.sql && wrangler dev"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
