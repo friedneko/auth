@@ -29,17 +29,17 @@ export default async function LoginPage({ query }: { query: string }) {
         <title>Login — IDP</title>
       </head>
       <body className="bg-gray-50">
-        <main className="flex min-h-screen items-center justify-center">
-          <div className="w-full max-w-md space-y-6 rounded-lg bg-white p-8 shadow">
+        <main className="flex min-h-screen items-center justify-center p-4">
+          <div className="flex w-full max-w-md flex-col gap-6">
             <h1 className="text-2xl font-bold text-center">Sign in</h1>
 
             {errorMessage && (
-              <Alert variant="destructive" className="bg-red-50 border-red-200">
-                <AlertDescription className="text-red-800">{errorMessage}</AlertDescription>
+              <Alert variant="destructive">
+                <AlertDescription>{errorMessage}</AlertDescription>
               </Alert>
             )}
 
-            <form method="POST" action="/login/callback" className="space-y-6">
+            <form method="POST" action="/login/callback" className="flex flex-col gap-4">
               <Field>
                 <FieldLabel>Email</FieldLabel>
                 <Input type="email" name="email" id="email" required autoComplete="email" />
