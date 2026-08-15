@@ -5,7 +5,6 @@
  * approval using shadcn UI components. Posts to `/consent/callback`.
  */
 
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -31,16 +30,16 @@ export default async function ConsentPage({ query }: { query: string }) {
       </head>
       <body className="bg-gray-50">
         <main className="flex min-h-screen items-center justify-center">
-          <Card className="w-full max-w-lg p-8">
-            <h1 className="text-2xl font-bold text-center mb-6">Authorize application</h1>
+          <div className="w-full max-w-lg space-y-6 rounded-lg bg-white p-8 shadow">
+            <h1 className="text-2xl font-bold text-center">Authorize application</h1>
 
-            <Alert variant="default" className="mb-6 bg-blue-50 border-blue-200">
+            <Alert variant="default" className="bg-blue-50 border-blue-200">
               <AlertDescription>
                 <strong>{clientId}</strong> is requesting access to the following scopes:
               </AlertDescription>
             </Alert>
 
-            <ul className="list-disc list-inside space-y-2 text-gray-700 mb-6 pl-4">
+            <ul className="list-disc list-inside space-y-2 text-gray-700 pl-4">
               {scopes.map((s) => (
                 <li key={s} className="text-sm">
                   {s}
@@ -77,7 +76,7 @@ export default async function ConsentPage({ query }: { query: string }) {
                 </Button>
               </div>
             </form>
-          </Card>
+          </div>
         </main>
       </body>
     </html>

@@ -4,7 +4,6 @@
  * Renders a signup form using shadcn UI components. Posts to `/signup/callback`.
  */
 
-import { Card } from "@/components/ui/card";
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -33,11 +32,11 @@ export default async function SignupPage({ query }: { query: string }) {
       </head>
       <body className="bg-gray-50">
         <main className="flex min-h-screen items-center justify-center">
-          <Card className="w-full max-w-md p-8">
-            <h1 className="text-2xl font-bold text-center mb-6">Create account</h1>
+          <div className="w-full max-w-md space-y-6 rounded-lg bg-white p-8 shadow">
+            <h1 className="text-2xl font-bold text-center">Create account</h1>
 
             {errorMessage && (
-              <Alert variant="destructive" className="mb-6 bg-red-50 border-red-200">
+              <Alert variant="destructive" className="bg-red-50 border-red-200">
                 <AlertDescription className="text-red-800">{errorMessage}</AlertDescription>
               </Alert>
             )}
@@ -82,13 +81,13 @@ export default async function SignupPage({ query }: { query: string }) {
               </Button>
             </form>
 
-            <p className="mt-6 text-center text-sm text-gray-600">
+            <p className="text-center text-sm text-gray-600">
               Already have an account?{" "}
               <Link to="/login" className="text-blue-600 underline">
                 Sign in
               </Link>
             </p>
-          </Card>
+          </div>
         </main>
       </body>
     </html>
