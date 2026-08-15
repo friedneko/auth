@@ -43,3 +43,21 @@ preview_id = "9acd7eeed03b41e1bd9d761f56057fbd"
 # ---------------------------------------------------------------------------
 [vars]
 # IDP_ADMIN_KEY = ""  # set via `wrangler secret put IDP_ADMIN_KEY` for remote bootstrap
+
+# ---------------------------------------------------------------------------
+# Observability - Cloudflare Logs
+# ---------------------------------------------------------------------------
+[observability]
+enabled = false
+head_sampling_rate = 1
+
+[observability.logs]
+enabled = true
+head_sampling_rate = 1
+persist = true
+invocation_logs = true
+
+[observability.traces]
+enabled = true
+persist = true
+head_sampling_rate = 1
