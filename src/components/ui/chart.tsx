@@ -58,7 +58,7 @@ function ChartContainer({
   const chartId = `chart-${id ?? uniqueId.replace(/:/g, "")}`;
 
   return (
-    <ChartContext.Provider value={{ config }}>
+    <ChartContext.Provider value={React.useMemo(() => ({ config }), [config])}>
       <div
         data-slot="chart"
         data-chart={chartId}
