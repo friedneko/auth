@@ -22,12 +22,8 @@ type = "ESModule"
 globs = ["**/*.js", "**/*.mjs"]
 
 no_bundle = true
-migrations_dir = "src/lib/db/migrations"
 
-# Cloudflare D1 (SQLite) binding for Drizzle. The `DB` binding name matches the
-# accessor used in `src/lib/db/client.ts` (getCloudflareContext().env.DB).
-# `database_name` is the D1 instance name in your Cloudflare account; create it
-# with `wrangler d1 create auth_db` and rename to match.
+# Cloudflare D1 (SQLite) binding for Drizzle
 [[d1_databases]]
 binding = "DB"
 database_name = "auth_db"
