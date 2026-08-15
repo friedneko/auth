@@ -1,8 +1,28 @@
-import "@/styles.css";
+/**
+ * Signup page — `GET /signup`
+ *
+ * Renders a signup form using shadcn UI components. Posts to `/signup/callback`.
+ */
+
+import { Card } from "@/components/ui/card";
+import { Field, FieldLabel } from "@/components/ui/field";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Link } from "waku";
 
 export default async function SignupPage({ query }: { query: string }) {
   const params = new URLSearchParams(query);
   const error = params.get("error");
+
+  const errorMap: Record<string, string> = {
+    invalid_input: "Please fill in all required fields.",
+    password_mismatch: "Passwords do not match.",
+    weak_password: "Password must be at least 8 characters.",
+    email_exists: "An account with this email already exists.",
+  };
+  const errorMessage =
+    error && errorMap[error] ? errorMap[error] : error ? "An error occurred." : null;
 
   return (
     <html lang="en">
@@ -13,87 +33,62 @@ export default async function SignupPage({ query }: { query: string }) {
       </head>
       <body className="bg-gray-50">
         <main className="flex min-h-screen items-center justify-center">
-          <form
-            method="POST"
-            action="/signup/callback"
-            className="w-full max-w-sm space-y-4 rounded-lg bg-white p-8 shadow"
-          >
-            <h1 className="text-2xl font-bold text-center">Create account</h1>
+          <Card className="w-full max-w-md p-8">
+            <h1 className="text-2xl font-bold text-center mb-6">Create account</h1>
 
-            {error && <p className="rounded bg-red-100 px-3 py-2 text-sm text-red-700">{error}</p>}
+            {errorMessage && (
+              <Alert variant="destructive" className="mb-6 bg-red-50 border-red-200">
+                <AlertDescription className="text-red-800">{errorMessage}</AlertDescription>
+              </Alert>
+            )}
 
-            <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                Name
-              </label>
-              <input
-                type="text"
-                name="name"
-                id="name"
-                required
-                autoComplete="name"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
+            <form method="POST" action="/signup/callback" className="space-y-6">
+              <Field>
+                <FieldLabel>Name</FieldLabel>
+                <Input type="text" name="name" id="name" required autoComplete="name" />
+              </Field>
 
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                Email
-              </label>
-              <input
-                type="email"
-                name="email"
-                id="email"
-                required
-                autoComplete="email"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
+              <Field>
+                <FieldLabel>Email</FieldLabel>
+                <Input type="email" name="email" id="email" required autoComplete="email" />
+              </Field>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                Password
-              </label>
-              <input
-                type="password"
-                name="password"
-                id="password"
-                required
-                minLength={8}
-                autoComplete="new-password"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
+              <Field>
+                <FieldLabel>Password</FieldLabel>
+                <Input
+                  type="password"
+                  name="password"
+                  id="password"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                />
+              </Field>
 
-            <div>
-              <label htmlFor="password_confirm" className="block text-sm font-medium text-gray-700">
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                name="password_confirm"
-                id="password_confirm"
-                required
-                minLength={8}
-                autoComplete="new-password"
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-              />
-            </div>
+              <Field>
+                <FieldLabel>Confirm Password</FieldLabel>
+                <Input
+                  type="password"
+                  name="password_confirm"
+                  id="password_confirm"
+                  required
+                  minLength={8}
+                  autoComplete="new-password"
+                />
+              </Field>
 
-            <button
-              type="submit"
-              className="w-full rounded-md bg-blue-600 py-2 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
-            >
-              Create account
-            </button>
+              <Button type="submit" className="w-full">
+                Create account
+              </Button>
+            </form>
 
-            <p className="text-center text-sm text-gray-600">
+            <p className="mt-6 text-center text-sm text-gray-600">
               Already have an account?{" "}
-              <a href="/login" className="text-blue-600 underline">
+              <Link to="/login" className="text-blue-600 underline">
                 Sign in
-              </a>
+              </Link>
             </p>
-          </form>
+          </Card>
         </main>
       </body>
     </html>

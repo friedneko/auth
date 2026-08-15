@@ -2,10 +2,12 @@
  * Consent page — `GET /consent`
  *
  * Shows the user which scopes the client is requesting and asks for
- * approval. The form posts to `/consent/callback`.
+ * approval using shadcn UI components. Posts to `/consent/callback`.
  */
 
-import "@/styles.css";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default async function ConsentPage({ query }: { query: string }) {
   const params = new URLSearchParams(query);
@@ -29,56 +31,53 @@ export default async function ConsentPage({ query }: { query: string }) {
       </head>
       <body className="bg-gray-50">
         <main className="flex min-h-screen items-center justify-center">
-          <form
-            method="POST"
-            action="/consent/callback"
-            className="w-full max-w-md space-y-4 rounded-lg bg-white p-8 shadow"
-          >
-            <h1 className="text-2xl font-bold text-center">Authorize application</h1>
+          <Card className="w-full max-w-lg p-8">
+            <h1 className="text-2xl font-bold text-center mb-6">Authorize application</h1>
 
-            <p className="text-center text-gray-600">
-              <strong>{clientId}</strong> is requesting access to:
-            </p>
+            <Alert variant="default" className="mb-6 bg-blue-50 border-blue-200">
+              <AlertDescription>
+                <strong>{clientId}</strong> is requesting access to the following scopes:
+              </AlertDescription>
+            </Alert>
 
-            <ul className="list-disc list-inside space-y-1 text-gray-700">
+            <ul className="list-disc list-inside space-y-2 text-gray-700 mb-6 pl-4">
               {scopes.map((s) => (
-                <li key={s}>{s}</li>
+                <li key={s} className="text-sm">
+                  {s}
+                </li>
               ))}
             </ul>
 
-            {/* Hidden fields to pass through the authorize flow */}
-            <input type="hidden" name="client_id" value={clientId} />
-            <input type="hidden" name="redirect_uri" value={redirectUri} />
-            <input type="hidden" name="scope" value={scope} />
-            <input type="hidden" name="response_type" value={responseType} />
-            {state && <input type="hidden" name="state" value={state} />}
-            {nonce && <input type="hidden" name="nonce" value={nonce} />}
-            {codeChallenge && (
-              <>
-                <input type="hidden" name="code_challenge" value={codeChallenge} />
-                <input type="hidden" name="code_challenge_method" value={codeChallengeMethod} />
-              </>
-            )}
+            <form method="POST" action="/consent/callback" className="space-y-6">
+              <input type="hidden" name="client_id" value={clientId} />
+              <input type="hidden" name="redirect_uri" value={redirectUri} />
+              <input type="hidden" name="scope" value={scope} />
+              <input type="hidden" name="response_type" value={responseType} />
+              {state && <input type="hidden" name="state" value={state} />}
+              {nonce && <input type="hidden" name="nonce" value={nonce} />}
+              {codeChallenge && (
+                <>
+                  <input type="hidden" name="code_challenge" value={codeChallenge} />
+                  <input type="hidden" name="code_challenge_method" value={codeChallengeMethod} />
+                </>
+              )}
 
-            <div className="flex gap-3 pt-2">
-              <button
-                type="submit"
-                name="confirm"
-                value="yes"
-                className="flex-1 rounded-md bg-blue-600 py-2 px-4 text-sm font-semibold text-white transition-colors hover:bg-blue-700"
-              >
-                Allow
-              </button>
-              <button
-                type="submit"
-                name="confirm"
-                value="deny"
-                className="flex-1 rounded-md border border-gray-300 py-2 px-4 text-sm font-semibold text-gray-700 transition-colors hover:bg-gray-100"
-              >
-                Deny
-              </button>
-            </div>
-          </form>
+              <div className="flex gap-3">
+                <Button type="submit" name="confirm" value="yes" className="flex-1">
+                  Allow
+                </Button>
+                <Button
+                  type="submit"
+                  name="confirm"
+                  value="deny"
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Deny
+                </Button>
+              </div>
+            </form>
+          </Card>
         </main>
       </body>
     </html>
