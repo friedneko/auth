@@ -1,6 +1,6 @@
 {
   "name": "auth",
-  "version": "0.0.7",
+  "version": "0.0.8",
   "private": true,
   "type": "module",
   "scripts": {
@@ -29,7 +29,6 @@
     "date-fns": "^4.4.0",
     "drizzle-orm": "^0.45.2",
     "embla-carousel-react": "^8.6.0",
-    "hono": "^4.12.14",
     "input-otp": "^1.4.2",
     "lucide-react": "^1.31.0",
     "react": "~19.2.8",
