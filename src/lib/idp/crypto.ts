@@ -24,6 +24,7 @@ import {
 import { SIGNING_ALGORITHM, PBKDF2_ITERATIONS, SESSION_JWT_TTL } from "./constants";
 import type { SessionTokenPayload, SigningKey } from "./types";
 import { getDb } from "./env";
+import { getKv } from "./env";
 import { oauthKeys } from "@/lib/db/schema";
 import { asc } from "drizzle-orm";
 
@@ -143,17 +144,42 @@ async function sha256Bytes(input: string): Promise<Uint8Array> {
 // ---------------------------------------------------------------------------
 
 /**
- * Ensure at least one signing key exists in D1. If none exist, generate a new
- * ES256 key pair and persist it. Returns the primary key.
+ * Ensure at least one signing key exists and is cached in KV. If none exist in
+ * D1, generate a new ES256 key pair and persist it. The primary key's data is
+ * also cached in KV for fast lookups on subsequent requests.
  */
 export async function ensureSigningKey(): Promise<SigningKey> {
+  // Try KV cache first
+  const kv = getKv();
+  if (kv) {
+    const cached = await kv.get("__signing_key__:primary");
+    if (cached) {
+      try {
+        return JSON.parse(cached) as SigningKey;
+      } catch {
+        // Corrupted cache — fall through to D1
+      }
+    }
+  }
+
+  // Fallback to D1
   const db = await getDb();
   const existing = await db.select().from(oauthKeys).orderBy(asc(oauthKeys.isPrimary)).limit(1);
 
   if (existing.length > 0) {
-    return rowToKey(existing[0]!);
+    const key = rowToKey(existing[0]!);
+    // Cache in KV for fast subsequent access
+    if (kv) {
+      try {
+        void kv.put("__signing_key__:primary", JSON.stringify(key));
+      } catch {
+        // KV write failure is non-fatal
+      }
+    }
+    return key;
   }
 
+  // Generate new key pair
   const { privateKey, publicKey } = await generateKeyPair(SIGNING_ALGORITHM, {
     extractable: true,
   });
@@ -165,6 +191,15 @@ export async function ensureSigningKey(): Promise<SigningKey> {
   const jwkPrivateStr = JSON.stringify(privateJwk);
   const jwkPublicStr = JSON.stringify(publicJwk);
 
+  const key: SigningKey = {
+    id: kid,
+    jwkPrivate: jwkPrivateStr,
+    jwkPublic: jwkPublicStr,
+    alg: SIGNING_ALGORITHM,
+    createdAt: now,
+    isPrimary: 1,
+  };
+
   await db.insert(oauthKeys).values({
     id: kid,
     jwkPrivate: jwkPrivateStr,
@@ -174,14 +209,16 @@ export async function ensureSigningKey(): Promise<SigningKey> {
     isPrimary: 1,
   });
 
-  return {
-    id: kid,
-    jwkPrivate: jwkPrivateStr,
-    jwkPublic: jwkPublicStr,
-    alg: SIGNING_ALGORITHM,
-    createdAt: now,
-    isPrimary: 1,
-  };
+  // Cache in KV
+  if (kv) {
+    try {
+      void kv.put("__signing_key__:primary", JSON.stringify(key));
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  return key;
 }
 
 /**
@@ -321,8 +358,21 @@ export async function createIdToken(
 // JWKS
 // ---------------------------------------------------------------------------
 
-/** Build the public JWK Set from all signing keys in D1. */
+/** Build the public JWK Set from all signing keys in D1 (with KV cache). */
 export async function getJwks(): Promise<{ keys: JWK[] }> {
+  // Try KV cache first
+  const kv = getKv();
+  if (kv) {
+    const cached = await kv.get("__jwks__");
+    if (cached) {
+      try {
+        return JSON.parse(cached) as { keys: JWK[] };
+      } catch {
+        // Corrupted cache — fall through to D1
+      }
+    }
+  }
+
   const db = await getDb();
   const rows = await db.select().from(oauthKeys);
   const keys: JWK[] = [];
@@ -342,7 +392,19 @@ export async function getJwks(): Promise<{ keys: JWK[] }> {
     if (pub.e !== undefined) cleanJwk.e = pub.e;
     keys.push(cleanJwk);
   }
-  return { keys };
+
+  const result = { keys };
+
+  // Cache in KV
+  if (kv) {
+    try {
+      void kv.put("__jwks__", JSON.stringify(result));
+    } catch {
+      // Non-fatal
+    }
+  }
+
+  return result;
 }
 
 /** Create a local JWK set resolver (for verifying inbound JWTs). */
