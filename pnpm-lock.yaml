@@ -31,7 +31,7 @@ importers:
         version: 4.4.0
       drizzle-orm:
         specifier: ^0.45.2
-        version: 0.45.2(@cloudflare/workers-types@5.20260814.1)
+        version: 0.45.2(@cloudflare/workers-types@5.20260814.1)(better-sqlite3@13.0.3)
       embla-carousel-react:
         specifier: ^8.6.0
         version: 8.6.0(react@19.2.8)
@@ -99,6 +99,9 @@ importers:
       babel-plugin-react-compiler:
         specifier: ^1.0.0
         version: 1.0.0
+      better-sqlite3:
+        specifier: ^13.0.3
+        version: 13.0.3
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
@@ -1959,6 +1962,10 @@ packages:
     engines: {node: '>=6.0.0'}
     hasBin: true
 
+  better-sqlite3@13.0.3:
+    resolution: {integrity: sha512-RbOBxmLBG8uvFUc15X9+9SFemKcQ0WBuISBVkpuiaUB2qblC8UWlHEjdWVoZ8AdhSwmoEgsiXKfopX0CQxaACQ==}
+    engines: {node: '>=22'}
+
   blake3-wasm@2.1.5:
     resolution: {integrity: sha512-F1+K8EbfOZE49dtoPtmxUQrpXaBIl3ICvasLh+nJta0xkz+9kF/7uet9fLnwKqhDrmj6g+6K3Tw9yQPUg2ka5g==}
 
@@ -3077,6 +3084,10 @@ packages:
 
   neo-async@2.6.2:
     resolution: {integrity: sha512-Yd3UES5mWCSqR+qNT93S3UoYUkqAZ9lLg8a7g9rimsWmYGK8cVToA4/sF3RrshdyV3sAGMXVUmpMYOw+dLpOuw==}
+
+  node-addon-api@8.9.2:
+    resolution: {integrity: sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg==}
+    engines: {node: ^18 || ^20 || >= 21}
 
   node-releases@2.0.53:
     resolution: {integrity: sha512-D9UOmYG3UH1V+ENW56t5QXBwJw1YEY18ruVeus89Rw+SyIgjPkCO84bRzO3uNIYosJbNwiabWVn48o3uJLjxFQ==}
@@ -5252,6 +5263,10 @@ snapshots:
 
   baseline-browser-mapping@2.11.14: {}
 
+  better-sqlite3@13.0.3:
+    dependencies:
+      node-addon-api: 8.9.2
+
   blake3-wasm@2.1.5: {}
 
   body-parser@2.3.0:
@@ -5479,9 +5494,10 @@ snapshots:
       esbuild: 0.25.12
       tsx: 4.23.12
 
-  drizzle-orm@0.45.2(@cloudflare/workers-types@5.20260814.1):
+  drizzle-orm@0.45.2(@cloudflare/workers-types@5.20260814.1)(better-sqlite3@13.0.3):
     optionalDependencies:
       '@cloudflare/workers-types': 5.20260814.1
+      better-sqlite3: 13.0.3
 
   dunder-proto@1.0.1:
     dependencies:
@@ -6168,6 +6184,8 @@ snapshots:
   negotiator@1.0.0: {}
 
   neo-async@2.6.2: {}
+
+  node-addon-api@8.9.2: {}
 
   node-releases@2.0.53: {}
 

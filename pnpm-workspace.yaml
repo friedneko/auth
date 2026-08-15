@@ -1,3 +1,7 @@
 allowBuilds:
   esbuild: true
   workerd: true
+  # Dev-only local SQLite driver used by `drizzle-kit push|studio|migrate`
+  # against sqlite://./dev.db. NOT imported by app/worker code (runtime uses
+  # D1 via drizzle-orm/d1), so it never reaches the no_bundle CF worker build.
+  better-sqlite3: true
