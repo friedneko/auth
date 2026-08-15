@@ -26,21 +26,19 @@ no_bundle = true
 # Cloudflare D1 (SQLite) binding for Drizzle. The `DB` binding name matches the
 # accessor used in `src/lib/db/client.ts` (getCloudflareContext().env.DB).
 # `database_name` is the D1 instance name in your Cloudflare account; create it
-# with `wrangler d1 create auth_db` and rename to match. `wrangler dev` /
-# `pnpm preview:cloudflare` auto-provision an ephemeral preview D1 when one
-# isn't named here.
+# with `wrangler d1 create auth_db` and rename to match.
 [[d1_databases]]
 binding = "DB"
 database_name = "auth_db"
 
 # ---------------------------------------------------------------------------
 # KV namespace for caching signing keys (D1 remains the source of truth).
-# Created via: wrangler kv namespace create auth_kv --binding AUTH_KV
+# Namespace: auth_kv (binding: auth_kv), already created in Cloudflare dashboard.
 # ---------------------------------------------------------------------------
-# [[kv_namespaces]]
-# binding = "AUTH_KV"
-# id = "your-kv-id-here"
-# preview_id = "your-preview-id-here"
+[[kv_namespaces]]
+binding = "auth_kv"
+id = "9acd7eeed03b41e1bd9d761f56057fbd"
+preview_id = "9acd7eeed03b41e1bd9d761f56057fbd"
 
 # ---------------------------------------------------------------------------
 # IDP settings. The issuer is derived from the request URL by default, so

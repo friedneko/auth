@@ -6,7 +6,7 @@
  * `cloudflare:workers` module (via `getDbFromEnv` in `@/lib/db/client.ts`)
  * to access the structured D1 database binding.
  *
- * KV is accessed directly via the `AUTH_KV` global binding exposed by Workers.
+ * KV is accessed directly via the `auth_kv` global binding exposed by Workers.
  */
 
 import { getDbFromEnv } from "@/lib/db/client";
@@ -24,16 +24,16 @@ export async function getDb(): Promise<Database> {
  * Returns `null` when running outside Workers (e.g. Node dev mode).
  */
 export function getKv(): KVNamespace | null {
-  // KV is a global binding in Cloudflare Workers
-  const global = globalThis as unknown as { AUTH_KV?: KVNamespace };
-  if (global.AUTH_KV) {
-    return global.AUTH_KV;
+  // auth_kv is a global binding in Cloudflare Workers
+  const global = globalThis as unknown as { auth_kv?: KVNamespace };
+  if (global.auth_kv) {
+    return global.auth_kv;
   }
   // Fallback: try reading from the env object (Waku Cloudflare adapter mirrors env)
   const env = // eslint-disable-next-line no-underscore-dangle
     (globalThis as { __WAKU_SERVER_ENV__?: Record<string, unknown> }).__WAKU_SERVER_ENV__;
-  if (env?.AUTH_KV) {
-    return env.AUTH_KV as KVNamespace;
+  if (env?.auth_kv) {
+    return env.auth_kv as KVNamespace;
   }
   return null;
 }
