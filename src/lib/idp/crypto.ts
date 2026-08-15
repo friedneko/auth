@@ -279,20 +279,20 @@ export async function verifyJwt(
 // Session JWT
 // ---------------------------------------------------------------------------
 
-/** Create a session JWT containing the session id and user id. */
+/** Create a session JWT containing the session id, user id, and optional role. */
 export async function createSessionJwt(
   sessionId: string,
   userId: number,
   issuer: string,
   signingKey: { privateKey: CryptoKey; kid: string; alg: string },
+  role?: string,
 ): Promise<string> {
-  return signJwt(
-    { sid: sessionId, uid: userId } as SessionTokenPayload,
-    signingKey.privateKey,
-    signingKey.kid,
-    signingKey.alg,
-    SESSION_JWT_TTL,
-  );
+  const payload: SessionTokenPayload = {
+    sid: sessionId,
+    uid: userId,
+    ...(role ? { role } : {}),
+  };
+  return signJwt(payload, signingKey.privateKey, signingKey.kid, signingKey.alg, SESSION_JWT_TTL);
 }
 
 /** Verify a session JWT. Returns the payload or null on failure. */
