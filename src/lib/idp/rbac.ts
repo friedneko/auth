@@ -68,15 +68,6 @@ export function rbacHasRole(userRole: string | undefined | null, requiredRole: s
   return userRole === requiredRole;
 }
 
-// Check if request user has permission
-export async function requestHasPermission(
-  _req: Request,
-  _permission: IdpPermission,
-): Promise<boolean> {
-  // TODO: Extract user from session JWT and check role
-  return false;
-}
-
 // Assign role to user
 export async function assignRole(userId: number, roleId: string): Promise<boolean> {
   const db = await getDb();
