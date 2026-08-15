@@ -1,0 +1,11 @@
+node_modules
+dist
+.env*
+*.tsbuildinfo
+.cache
+.DS_Store
+*.pem
+
+# Waku Cloudflare deployment artifacts
+.wrangler/
+wrangler.jsonc

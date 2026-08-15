@@ -1,0 +1,19 @@
+name = "auth"
+main = "./dist/server/index.js"
+compatibility_date = "2025-11-17"
+compatibility_flags = ["nodejs_als", "nodejs_compat"]
+
+# Pure SSG: static HTML/assets prerendered into dist/public, served from the
+# Cloudflare Assets binding; the worker only handles RSC/fetch at runtime.
+[assets]
+binding = "ASSETS"
+directory = "./dist/public"
+html_handling = "drop-trailing-slash"
+
+# dist/server is already transpiled to ES modules by waku build; wrangler must
+# treat .js/.mjs as ESModule workers instead of bundling.
+[[rules]]
+type = "ESModule"
+globs = ["**/*.js", "**/*.mjs"]
+
+no_bundle = true

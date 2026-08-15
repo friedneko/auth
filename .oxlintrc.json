@@ -1,0 +1,65 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+
+  "env": {
+    "browser": true,
+    "node": true,
+    "es2022": true
+  },
+
+  "plugins": [
+    "typescript",
+    "react",
+    "jsx-a11y",
+    "import",
+    "react-perf",
+    "unicorn",
+    "promise",
+    "oxc"
+  ],
+
+  "ignorePatterns": ["node_modules/**", "dist/**", ".waku/**", "src/pages.gen.ts"],
+
+  "categories": {
+    "correctness": "error",
+    "suspicious": "error",
+    "perf": "warn",
+    "style": "off",
+    "pedantic": "off",
+    "nursery": "off"
+  },
+
+  "rules": {
+    "react/react-in-jsx-scope": "off",
+    "react/rules-of-hooks": "error",
+    "react/function-component-definition": "off",
+    "react/no-unstable-nested-components": "warn",
+    "react/jsx-props-no-spreading": "off",
+    "import/no-unassigned-import": "off",
+    "import/no-named-export": "off",
+    "import/prefer-default-export": "off",
+    "unicorn/filename-case": "off",
+    "unicorn/no-null": "off",
+    "eslint/no-console": "off"
+  },
+
+  "overrides": [
+    {
+      "files": ["src/components/ui/**/*.{ts,tsx}"],
+      "rules": {
+        "react/no-unstable-nested-components": "off",
+        "react/no-array-index-key": "off",
+        "react-perf/jsx-no-new-object-as-prop": "off",
+        "react-perf/jsx-no-jsx-as-prop": "off",
+        "react-perf/jsx-no-new-function-as-prop": "off",
+        "jsx-a11y/prefer-tag-over-role": "off",
+        "jsx-a11y/anchor-has-content": "off",
+        "jsx-a11y/label-has-associated-control": "off",
+        "jsx-a11y/no-noninteractive-element-interactions": "off",
+        "jsx-a11y/click-events-have-key-events": "off",
+        "eslint/no-shadow": "off",
+        "eslint/no-underscore-dangle": "off"
+      }
+    }
+  ]
+}

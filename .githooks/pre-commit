@@ -1,0 +1,87 @@
+#!/usr/bin/env bash
+#
+# .githooks/pre-commit   (tracked, shareable)
+#
+# Keep the package version SYNCHRONIZED with the total number of commits on
+# HEAD so it is always correct "no matter what":
+#
+#   patch = (commits reachable from HEAD) + 1
+#   => AFTER this commit is created, version.patch == total commit count.
+#
+# major.minor are preserved from the existing version (releases still work).
+# Falls back to a `VERSION` file when package.json is absent.
+# Initial commit (no HEAD yet) -> 0.0.1.
+#
+# Because the number is derived from Git history itself, the hook self-heals:
+# a `--no-verify` commit, an amend, or a rebase on the next committing hook
+# re-aligns the version to the true count.
+
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+PKG_JSON="$REPO_ROOT/package.json"
+VERSION_FILE="$REPO_ROOT/VERSION"
+
+if [ ! -f "$PKG_JSON" ] && [ ! -f "$VERSION_FILE" ]; then
+  echo "pre-commit: no package.json or VERSION file found — skipping" >&2
+  exit 0
+fi
+
+export PKG_JSON VERSION_FILE
+
+NEW_VERSION="$(node -e '
+const fs   = require("fs");
+const { execSync } = require("child_process");
+
+let isPkg = false, target, major = 0, minor = 0;
+
+if (fs.existsSync(process.env.PKG_JSON)) {
+  isPkg   = true;
+  target  = process.env.PKG_JSON;
+  const pkg = JSON.parse(fs.readFileSync(target, "utf8"));
+  const v   = String(pkg.version || "0.0.0");
+  const p   = v.split(".").map(x => parseInt(x, 10));
+  major = p[0] || 0; minor = p[1] || 0;
+} else if (fs.existsSync(process.env.VERSION_FILE)) {
+  target = process.env.VERSION_FILE;
+  const v = (fs.readFileSync(target, "utf8").trim() || "0.0.0");
+  const p = v.split(".").map(x => parseInt(x, 10));
+  major = p[0] || 0; minor = p[1] || 0;
+}
+
+// Commits reachable from HEAD. 0 on the very first commit (no HEAD yet).
+let count = 0;
+try { count = parseInt(execSync("git rev-list --count HEAD", { encoding: "utf8" }).trim(), 10); }
+catch (_) { count = 0; }
+
+const patch = count + 1;          // +1 so version matches count AFTER this commit
+const next  = `${major}.${minor}.${patch}`;
+
+if (isPkg) {
+  const pkg = JSON.parse(fs.readFileSync(target, "utf8"));
+  pkg.version = next;
+  fs.writeFileSync(target, JSON.stringify(pkg, null, 2) + "\n");
+} else {
+  fs.writeFileSync(target, next + "\n");
+}
+console.log(next);
+')"
+
+# Stage the version bump.
+git add "$PKG_JSON" 2>/dev/null || git add "$VERSION_FILE" 2>/dev/null || true
+
+# Keep pnpm-lock.yaml in lockstep with the bumped package.json.
+# pnpm v9 lockfiles don't embed the root project version, so a pure version
+# bump is normally a no-op — but if package.json deps changed in this commit,
+# this regenerates a consistent lockfile from the updated package.json.
+# Best-effort & offline: never blocks a commit if pnpm/network is unavailable;
+# the version sync above still committed, and the next `pnpm install` reconciles.
+if [ -f "$REPO_ROOT/pnpm-lock.yaml" ] && command -v pnpm >/dev/null 2>&1; then
+  if pnpm install --lockfile-only --ignore-scripts >/dev/null 2>&1 && \
+     ! git diff --quiet "$REPO_ROOT/pnpm-lock.yaml" 2>/dev/null; then
+    git add "$REPO_ROOT/pnpm-lock.yaml" 2>/dev/null || true
+    echo "pre-commit: pnpm-lock.yaml refreshed to match package.json"
+  fi
+fi
+
+echo "pre-commit: version synced to commit count -> $NEW_VERSION"

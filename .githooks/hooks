@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+#
+# .githooks/hooks  — one script to enable/disable this repo's tracked git hooks.
+#
+# Usage:
+#   .githooks/hooks on      # enable  (git config core.hooksPath = .githooks)
+#   .githooks/hooks off     # disable (git config --unset core.hooksPath)
+#   .githooks/hooks status  # show current state (read-only)
+#
+# (aliases accepted: install/uninstall, enable/disable, true/false)
+set -euo pipefail
+
+ACTION="${1:-}"
+# Resolve the .githooks directory no matter where the script is invoked from.
+HOOK_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  cat <<'EOF'
+Usage: .githooks/hooks {on|off|status}
+  on     enable  tracked git hooks   (core.hooksPath = .githooks)
+  off    disable tracked git hooks   (core.hooksPath unset)
+  status show current hook state      (read-only)
+EOF
+}
+
+case "$ACTION" in
+  on|install|enable|true)
+    git config core.hooksPath "$HOOK_DIR"
+    echo "tracked git hooks ENABLED  (core.hooksPath = .githooks)"
+    echo ""
+    echo "Active hooks:"
+    (cd "$HOOK_DIR" && for f in *; do [ -f "$f" ] && [ -x "$f" ] && [ "$f" != "hooks" ] && echo "  • $f"; done) || true
+    ;;
+  off|uninstall|disable|false)
+    git config --unset core.hooksPath 2>/dev/null || true
+    echo "tracked git hooks DISABLED (core.hooksPath unset)"
+    ;;
+  status|show|list)
+    if git config --get core.hooksPath >/dev/null 2>&1; then
+      echo "tracked git hooks ENABLED  (core.hooksPath = $(git config --get core.hooksPath))"
+    else
+      echo "tracked git hooks DISABLED (core.hooksPath unset)"
+    fi
+    echo ""
+    echo "Active hooks:"
+    (cd "$HOOK_DIR" && for f in *; do [ -f "$f" ] && [ -x "$f" ] && [ "$f" != "hooks" ] && echo "  • $f"; done) || true
+    ;;
+  ""|-h|--help|help)
+    usage
+    ;;
+  *)
+    echo "Unknown action: $ACTION" >&2
+    usage >&2
+    exit 2
+    ;;
+esac
