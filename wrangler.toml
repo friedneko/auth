@@ -35,12 +35,14 @@ database_name = "auth_db"
 
 # ---------------------------------------------------------------------------
 # KV namespace for caching signing keys (D1 remains the source of truth).
-# Create with: wrangler kv namespace create IDP_KV
+# Uncomment and fill in IDs after running:
+#   wrangler kv namespace create IDP_KV
+#   wrangler kv namespace create IDP_KV --preview-env
 # ---------------------------------------------------------------------------
-[[kv_namespaces]]
-binding = "KV"
-id = "<run: wrangler kv namespace create IDP_KV>"
-preview_id = "<run: wrangler kv namespace create IDP_KV --preview-env>"
+# [[kv_namespaces]]
+# binding = "KV"
+# id = "your-kv-id-here"
+# preview_id = "your-preview-id-here"
 
 # ---------------------------------------------------------------------------
 # IDP settings. The issuer is derived from the request URL by default, so
