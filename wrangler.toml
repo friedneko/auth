@@ -3,6 +3,11 @@ main = "./dist/server/index.js"
 compatibility_date = "2025-11-17"
 compatibility_flags = ["nodejs_als", "nodejs_compat"]
 
+# Custom domain: https://auth.vwinter.moe
+# Add the route in the Cloudflare dashboard after deploying, or use:
+#   wrangler route add auth.vwinter.moe/*
+routes = [{ pattern = "auth.vwinter.moe/*", zone_name = "vwinter.moe" }]
+
 # Pure SSG: static HTML/assets prerendered into dist/public, served from the
 # Cloudflare Assets binding; the worker only handles RSC/fetch at runtime.
 [assets]
@@ -27,3 +32,10 @@ no_bundle = true
 [[d1_databases]]
 binding = "DB"
 database_name = "auth_db"
+
+# ---------------------------------------------------------------------------
+# IDP settings. The issuer is derived from the request URL by default, so
+# these are only needed for specific overrides.
+# ---------------------------------------------------------------------------
+[vars]
+# IDP_ADMIN_KEY = ""  # set via `wrangler secret put IDP_ADMIN_KEY` for remote bootstrap

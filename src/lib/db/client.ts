@@ -26,7 +26,7 @@ export function getDb(d1: D1Database): Database {
  * binding — exercise DB-backed server actions under `pnpm preview:cloudflare`.
  */
 export async function getDbFromEnv(): Promise<Database> {
-  const { env } = await import(/* @vite-ignore */ "cloudflare:workers");
+  const { env } = await import(/* @vite-ignore */ ("" as string) + "cloudflare:workers");
   const d1 = env.DB;
   if (!d1) {
     throw new Error(
