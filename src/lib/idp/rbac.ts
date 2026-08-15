@@ -59,6 +59,15 @@ export async function userHasPermission(
   return false;
 }
 
+// Synchronous role check from session JWT (for performance)
+// Since role is in the JWT, we can check it without DB lookup
+export function rbacHasRole(userRole: string | undefined | null, requiredRole: string): boolean {
+  if (!userRole) return false;
+  if (userRole === "admin") return true;
+  if (requiredRole === "admin") return false;
+  return userRole === requiredRole;
+}
+
 // Check if request user has permission
 export async function requestHasPermission(
   _req: Request,
