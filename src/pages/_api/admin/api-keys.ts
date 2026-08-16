@@ -4,7 +4,7 @@
  * API keys for programmatic access to the IDP.
  * Keys are prefixed with 'meow_' and hashed for security.
  * Protected by session JWT. Requires 'configure' permission.
- * 
+ *
  * API keys can have their own permissions for fine-grained access control.
  */
 
@@ -31,7 +31,7 @@ function jsonResponse(obj: unknown, status = 200): Response {
  */
 async function generateApiKey(): Promise<{ key: string; keyHash: string }> {
   const randomBytes = crypto.getRandomValues(new Uint8Array(16));
-  const hex = Array.from(randomBytes, b => b.toString(16).padStart(2, "0")).join("");
+  const hex = Array.from(randomBytes, (b) => b.toString(16).padStart(2, "0")).join("");
   const uuid = `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
   const fullKey = `${API_KEY_PREFIX}${uuid}`;
   const keyHash = await sha256Hex(fullKey);
@@ -48,8 +48,10 @@ export async function GET({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)
+  ) {
     return jsonResponse({ error: "Forbidden - configure permission required" }, 403);
   }
 
@@ -72,24 +74,26 @@ export async function GET({ req }: { req: Request }): Promise<Response> {
     });
 
     // For each key, get its permissions
-    const keysWithPerms = await Promise.all(keys.map(async (key) => {
-      const keyPerms = await db
-        .select({
-          id: permissions.id,
-          name: permissions.name,
-        })
-        .from(apiKeyPermissions)
-        .innerJoin(permissions, eq(apiKeyPermissions.permissionId, permissions.id))
-        .where(eq(apiKeyPermissions.apiKeyId, key.id));
-      
-      return {
-        id: key.id,
-        name: key.name,
-        keyPermissions: keyPerms.map(p => ({ id: p.id, name: p.name })),
-        createdAt: key.createdAt,
-        updatedAt: key.updatedAt,
-      };
-    }));
+    const keysWithPerms = await Promise.all(
+      keys.map(async (key) => {
+        const keyPerms = await db
+          .select({
+            id: permissions.id,
+            name: permissions.name,
+          })
+          .from(apiKeyPermissions)
+          .innerJoin(permissions, eq(apiKeyPermissions.permissionId, permissions.id))
+          .where(eq(apiKeyPermissions.apiKeyId, key.id));
+
+        return {
+          id: key.id,
+          name: key.name,
+          keyPermissions: keyPerms.map((p) => ({ id: p.id, name: p.name })),
+          createdAt: key.createdAt,
+          updatedAt: key.updatedAt,
+        };
+      }),
+    );
 
     return jsonResponse({ keys: keysWithPerms });
   }
@@ -107,8 +111,10 @@ export async function POST({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)
+  ) {
     return jsonResponse({ error: "Forbidden - configure permission required" }, 403);
   }
 
@@ -138,7 +144,7 @@ export async function POST({ req }: { req: Request }): Promise<Response> {
     const existingPerms = await db.query.permissions.findMany({
       where: inArray(permissions.id, permissionIds),
     });
-    const validIds = existingPerms.map(p => p.id);
+    const validIds = existingPerms.map((p) => p.id);
     if (validIds.length !== permissionIds.length) {
       return jsonResponse({ error: "Invalid permission ID provided" }, 400);
     }
@@ -165,26 +171,31 @@ export async function POST({ req }: { req: Request }): Promise<Response> {
   // Assign permissions if any
   if (newKey && permissionIds.length > 0) {
     await db.insert(apiKeyPermissions).values(
-      permissionIds.map(permId => ({
+      permissionIds.map((permId) => ({
         apiKeyId: newKey.id,
         permissionId: permId,
         createdAt: now,
-      }))
+      })),
     );
   }
 
   // Get permission names for response
-  const permsById = (await db.select().from(permissions))
-    .reduce((map, p) => { map.set(p.id, p.name); return map; }, new Map<string, string>());
-  
-  const permNames = permissionIds.map(id => permsById.get(id)).filter(Boolean);
+  const permsById = (await db.select().from(permissions)).reduce((map, p) => {
+    map.set(p.id, p.name);
+    return map;
+  }, new Map<string, string>());
+
+  const permNames = permissionIds.map((id) => permsById.get(id)).filter(Boolean);
 
   // Return the plain-text key (only time it's shown)
-  return jsonResponse({
-    success: true,
-    key,
-    keyPermissions: permNames,
-  }, 201);
+  return jsonResponse(
+    {
+      success: true,
+      key,
+      keyPermissions: permNames,
+    },
+    201,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -197,8 +208,10 @@ export async function PUT({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)
+  ) {
     return jsonResponse({ error: "Forbidden - configure permission required" }, 403);
   }
 
@@ -229,11 +242,11 @@ export async function PUT({ req }: { req: Request }): Promise<Response> {
   if (permissionIds.length > 0) {
     const now = Math.floor(Date.now() / 1000);
     await db.insert(apiKeyPermissions).values(
-      permissionIds.map(permId => ({
+      permissionIds.map((permId) => ({
         apiKeyId: id,
         permissionId: permId,
         createdAt: now,
-      }))
+      })),
     );
   }
 
@@ -250,8 +263,10 @@ export async function DELETE({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)
+  ) {
     return jsonResponse({ error: "Forbidden - configure permission required" }, 403);
   }
 

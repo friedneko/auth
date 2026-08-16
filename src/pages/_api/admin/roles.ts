@@ -29,8 +29,10 @@ export async function GET({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)
+  ) {
     return jsonResponse({ error: "Forbidden - configure permission required" }, 403);
   }
 
@@ -50,8 +52,10 @@ export async function POST({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)
+  ) {
     return jsonResponse({ error: "Forbidden - configure permission required" }, 403);
   }
 
@@ -74,7 +78,7 @@ export async function POST({ req }: { req: Request }): Promise<Response> {
 
   const roleId = crypto.randomUUID();
   const now = Math.floor(Date.now() / 1000);
-  
+
   await db.insert(roles).values({
     id: roleId,
     name,
@@ -85,13 +89,16 @@ export async function POST({ req }: { req: Request }): Promise<Response> {
 
   const newRole = await db.query.roles.findFirst({ where: eq(roles.id, roleId) });
 
-  return jsonResponse({
-    id: newRole?.id,
-    name: newRole?.name,
-    description: newRole?.description,
-    weight: newRole?.weight,
-    createdAt: newRole?.createdAt,
-  }, 201);
+  return jsonResponse(
+    {
+      id: newRole?.id,
+      name: newRole?.name,
+      description: newRole?.description,
+      weight: newRole?.weight,
+      createdAt: newRole?.createdAt,
+    },
+    201,
+  );
 }
 
 export const getConfig = async () => ({ render: "dynamic" }) as const;

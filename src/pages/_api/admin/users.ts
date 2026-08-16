@@ -30,8 +30,10 @@ export async function GET({ req }: { req: Request }): Promise<Response> {
   }
 
   // Check permission: manage_users OR admin role
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.MANAGE_USERS)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.MANAGE_USERS)
+  ) {
     return jsonResponse({ error: "Forbidden - manage_users permission required" }, 403);
   }
 
@@ -88,8 +90,10 @@ export async function POST({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.MANAGE_USERS)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.MANAGE_USERS)
+  ) {
     return jsonResponse({ error: "Forbidden - manage_users permission required" }, 403);
   }
 
@@ -177,8 +181,10 @@ export async function DELETE({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.MANAGE_USERS)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.MANAGE_USERS)
+  ) {
     return jsonResponse({ error: "Forbidden - manage_users permission required" }, 403);
   }
 
@@ -209,8 +215,10 @@ export async function PUT({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.MANAGE_USERS)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.MANAGE_USERS)
+  ) {
     return jsonResponse({ error: "Forbidden - manage_users permission required" }, 403);
   }
 

@@ -15,8 +15,11 @@ export const POST = async (req: Request): Promise<Response> => {
   const session = await getSession(req);
   if (!session) {
     return new Response(
-      JSON.stringify({ error: "not_authenticated", error_description: "Session expired or invalid" }),
-      { status: 401, headers: { "content-type": "application/json" } }
+      JSON.stringify({
+        error: "not_authenticated",
+        error_description: "Session expired or invalid",
+      }),
+      { status: 401, headers: { "content-type": "application/json" } },
     );
   }
 

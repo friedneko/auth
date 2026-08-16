@@ -1,6 +1,6 @@
 /**
  * Admin REST API: User permissions management
- * 
+ *
  * Allows granting/revoking direct permissions to users (bypassing roles).
  * Protected by session JWT. Requires 'configure' permission.
  */
@@ -29,8 +29,10 @@ export async function GET({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)
+  ) {
     return jsonResponse({ error: "Forbidden - configure permission required" }, 403);
   }
 
@@ -80,8 +82,10 @@ export async function POST({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)
+  ) {
     return jsonResponse({ error: "Forbidden - configure permission required" }, 403);
   }
 
@@ -134,8 +138,10 @@ export async function DELETE({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)
+  ) {
     return jsonResponse({ error: "Forbidden - configure permission required" }, 403);
   }
 
@@ -149,9 +155,14 @@ export async function DELETE({ req }: { req: Request }): Promise<Response> {
 
   const db = await getDb();
 
-  await db.delete(userPermissions).where(
-    and(eq(userPermissions.userId, parseInt(userId, 10)), eq(userPermissions.permissionId, permissionId))
-  );
+  await db
+    .delete(userPermissions)
+    .where(
+      and(
+        eq(userPermissions.userId, parseInt(userId, 10)),
+        eq(userPermissions.permissionId, permissionId),
+      ),
+    );
 
   return jsonResponse({ success: true });
 }

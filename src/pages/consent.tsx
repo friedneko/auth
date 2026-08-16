@@ -15,7 +15,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 export default async function ConsentPage({ query, headers }: { query: string; headers: Headers }) {
   // SECURITY: Verify user has a valid session before showing consent form
   const cookieHeader = headers.get("cookie") ?? "";
-  
+
   if (!cookieHeader || !cookieHeader.includes("idp_session=")) {
     // Not authenticated - redirect to login
     const params = new URLSearchParams(query);
@@ -27,7 +27,7 @@ export default async function ConsentPage({ query, headers }: { query: string; h
 
     return new Response(null, {
       status: 302,
-      headers: { location: loginUrl.toString() }
+      headers: { location: loginUrl.toString() },
     });
   }
 

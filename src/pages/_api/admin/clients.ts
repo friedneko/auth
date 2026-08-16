@@ -30,8 +30,10 @@ export async function GET({ req }: { req: Request }): Promise<Response> {
   }
 
   // Check permission: manage_clients OR admin role
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.MANAGE_CLIENTS)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.MANAGE_CLIENTS)
+  ) {
     return jsonResponse({ error: "Forbidden - manage_clients permission required" }, 403);
   }
 
@@ -76,8 +78,10 @@ export async function POST({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.MANAGE_CLIENTS)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.MANAGE_CLIENTS)
+  ) {
     return jsonResponse({ error: "Forbidden - manage_clients permission required" }, 403);
   }
 
@@ -172,8 +176,10 @@ export async function DELETE({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.MANAGE_CLIENTS)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.MANAGE_CLIENTS)
+  ) {
     return jsonResponse({ error: "Forbidden - manage_clients permission required" }, 403);
   }
 
@@ -209,8 +215,10 @@ export async function PUT({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.MANAGE_CLIENTS)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.MANAGE_CLIENTS)
+  ) {
     return jsonResponse({ error: "Forbidden - manage_clients permission required" }, 403);
   }
 
@@ -258,18 +266,19 @@ export async function PUT({ req }: { req: Request }): Promise<Response> {
   }
 
   // Hash new client secret if provided
-  const secretHash = client_secret
-    ? await hashSecret(client_secret)
-    : client.secretHash;
+  const secretHash = client_secret ? await hashSecret(client_secret) : client.secretHash;
 
-  await db.update(oauthClients).set({
-    name: name ?? client.name,
-    redirectUris: redirect_uris ? JSON.stringify(redirect_uris) : client.redirectUris,
-    grantTypes: grant_types ? JSON.stringify(grant_types) : client.grantTypes,
-    responseTypes: response_types ? JSON.stringify(response_types) : client.responseTypes,
-    tokenEndpointAuthMethod: token_endpoint_auth_method ?? client.tokenEndpointAuthMethod,
-    secretHash,
-  }).where(eq(oauthClients.id, id));
+  await db
+    .update(oauthClients)
+    .set({
+      name: name ?? client.name,
+      redirectUris: redirect_uris ? JSON.stringify(redirect_uris) : client.redirectUris,
+      grantTypes: grant_types ? JSON.stringify(grant_types) : client.grantTypes,
+      responseTypes: response_types ? JSON.stringify(response_types) : client.responseTypes,
+      tokenEndpointAuthMethod: token_endpoint_auth_method ?? client.tokenEndpointAuthMethod,
+      secretHash,
+    })
+    .where(eq(oauthClients.id, id));
 
   const updatedClient = await db.query.oauthClients.findFirst({
     where: eq(oauthClients.id, id),

@@ -29,8 +29,10 @@ export async function GET({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)
+  ) {
     return jsonResponse({ error: "Forbidden - configure permission required" }, 403);
   }
 
@@ -50,8 +52,10 @@ export async function POST({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)
+  ) {
     return jsonResponse({ error: "Forbidden - configure permission required" }, 403);
   }
 
@@ -67,10 +71,10 @@ export async function POST({ req }: { req: Request }): Promise<Response> {
   }
 
   const db = await getDb();
-  
+
   // Generate ID from name if not provided
   const permId = id ?? crypto.randomUUID();
-  
+
   // Check if permission already exists
   const existing = await db.query.permissions.findFirst({ where: eq(permissions.id, permId) });
   if (existing) {
@@ -78,7 +82,7 @@ export async function POST({ req }: { req: Request }): Promise<Response> {
   }
 
   const now = Math.floor(Date.now() / 1000);
-  
+
   await db.insert(permissions).values({
     id: permId,
     name,
@@ -88,12 +92,15 @@ export async function POST({ req }: { req: Request }): Promise<Response> {
 
   const newPerm = await db.query.permissions.findFirst({ where: eq(permissions.id, permId) });
 
-  return jsonResponse({
-    id: newPerm?.id,
-    name: newPerm?.name,
-    description: newPerm?.description,
-    createdAt: newPerm?.createdAt,
-  }, 201);
+  return jsonResponse(
+    {
+      id: newPerm?.id,
+      name: newPerm?.name,
+      description: newPerm?.description,
+      createdAt: newPerm?.createdAt,
+    },
+    201,
+  );
 }
 
 // ---------------------------------------------------------------------------
@@ -106,8 +113,10 @@ export async function DELETE({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)
+  ) {
     return jsonResponse({ error: "Forbidden - configure permission required" }, 403);
   }
 

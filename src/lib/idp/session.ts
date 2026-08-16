@@ -21,7 +21,15 @@ import { createId } from "@/lib/utils";
 import { getSigningKey, createSessionJwt, verifySessionJwt } from "./crypto";
 import { getDb } from "../env";
 import { getSessionToken } from "./cookies";
-import { oauthSessions, users, userRoles, roles, permissions, rolePermissions, userPermissions } from "@/lib/db/schema";
+import {
+  oauthSessions,
+  users,
+  userRoles,
+  roles,
+  permissions,
+  rolePermissions,
+  userPermissions,
+} from "@/lib/db/schema";
 import { and, eq, gt, desc } from "drizzle-orm";
 import { SESSION_TTL } from "./constants";
 
@@ -66,10 +74,10 @@ async function getUserPrimaryRole(
 ): Promise<{ name: string | undefined; weight: number; permissionIds: string[] } | undefined> {
   // Get user's roles with weights
   const userRoleRows = await db
-    .select({ 
-      name: roles.name, 
+    .select({
+      name: roles.name,
       weight: roles.weight,
-      id: roles.id
+      id: roles.id,
     })
     .from(userRoles)
     .innerJoin(roles, eq(userRoles.roleId, roles.id))
@@ -78,19 +86,19 @@ async function getUserPrimaryRole(
     .limit(1);
 
   if (!userRoleRows[0]) return undefined;
-  
+
   const roleRow = userRoleRows[0];
-  
+
   // Admin role gets all permissions via wildcard check
   if (roleRow.name === "admin") {
     const allPerms = await db.select({ id: permissions.id }).from(permissions);
     return {
       name: roleRow.name,
       weight: roleRow.weight,
-      permissionIds: allPerms.map(p => p.id),
+      permissionIds: allPerms.map((p) => p.id),
     };
   }
-  
+
   // Get permissions for this role
   const permRows = await db
     .select({ permId: permissions.id })
@@ -98,11 +106,11 @@ async function getUserPrimaryRole(
     .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
     .innerJoin(roles, eq(rolePermissions.roleId, roles.id))
     .where(eq(roles.id, roleRow.id));
-  
+
   return {
     name: roleRow.name,
     weight: roleRow.weight,
-    permissionIds: permRows.map(p => p.permId),
+    permissionIds: permRows.map((p) => p.permId),
   };
 }
 
@@ -118,8 +126,8 @@ async function getUserDirectPermissions(
     .from(userPermissions)
     .innerJoin(permissions, eq(userPermissions.permissionId, permissions.id))
     .where(eq(userPermissions.userId, userId));
-  
-  return directPerms.map(p => p.permId);
+
+  return directPerms.map((p) => p.permId);
 }
 
 /**
@@ -131,16 +139,17 @@ async function getAllUserPermissions(
 ): Promise<{ roleInfo: { name: string; weight: number } | undefined; allPermissions: string[] }> {
   const roleInfo = await getUserPrimaryRole(db, userId);
   const directPerms = await getUserDirectPermissions(db, userId);
-  
+
   // Combine role-based and direct permissions (union)
   const allPermsSet = new Set<string>();
   if (roleInfo?.permissionIds) {
-    roleInfo.permissionIds.forEach(p => allPermsSet.add(p));
+    roleInfo.permissionIds.forEach((p) => allPermsSet.add(p));
   }
-  directPerms.forEach(p => allPermsSet.add(p));
-  
+  directPerms.forEach((p) => allPermsSet.add(p));
+
   return {
-    roleInfo: roleInfo && roleInfo.name ? { name: roleInfo.name, weight: roleInfo.weight } : undefined,
+    roleInfo:
+      roleInfo && roleInfo.name ? { name: roleInfo.name, weight: roleInfo.weight } : undefined,
     allPermissions: Array.from(allPermsSet),
   };
 }

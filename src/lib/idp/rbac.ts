@@ -1,6 +1,6 @@
 /**
  * Role-Based Access Control utilities for the IDP.
- * 
+ *
  * Normalized RBAC with separate permissions table for better scalability.
  */
 
@@ -49,15 +49,12 @@ export interface Permission {
 /**
  * Check if a role has a specific permission.
  */
-export async function roleHasPermission(
-  roleName: string,
-  permission: string,
-): Promise<boolean> {
+export async function roleHasPermission(roleName: string, permission: string): Promise<boolean> {
   // Admin role gets all permissions
   if (roleName === "admin") return true;
-  
+
   const db = await getDb();
-  
+
   // Get the role's permissions
   const result = await db
     .select({ permId: permissions.id })
@@ -65,7 +62,7 @@ export async function roleHasPermission(
     .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
     .innerJoin(roles, eq(rolePermissions.roleId, roles.id))
     .where(and(eq(roles.name, roleName), eq(permissions.id, permission)));
-  
+
   return result.length > 0;
 }
 
@@ -74,7 +71,7 @@ export async function roleHasPermission(
  */
 export async function getRolePermissions(roleName: string): Promise<Permission[]> {
   const db = await getDb();
-  
+
   // Admin has all permissions
   if (roleName === "admin") {
     const allPerms = await db.select().from(permissions);
@@ -85,7 +82,7 @@ export async function getRolePermissions(roleName: string): Promise<Permission[]
       createdAt: p.createdAt,
     }));
   }
-  
+
   const result = await db
     .select({
       id: permissions.id,
@@ -97,7 +94,7 @@ export async function getRolePermissions(roleName: string): Promise<Permission[]
     .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
     .innerJoin(roles, eq(rolePermissions.roleId, roles.id))
     .where(eq(roles.name, roleName));
-  
+
   return result;
 }
 
@@ -131,12 +128,7 @@ export async function userHasPermission(
     .from(rolePermissions)
     .innerJoin(roles, eq(rolePermissions.roleId, roles.id))
     .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
-    .where(
-      and(
-        inArray(roles.name, roleNames),
-        eq(permissions.id, permission)
-      )
-    )
+    .where(and(inArray(roles.name, roleNames), eq(permissions.id, permission)))
     .limit(1);
 
   return result.length > 0;
@@ -157,7 +149,10 @@ export function sessionHasPermission(
 /**
  * Weight-based role check for hierarchy support.
  */
-export function rbacHasRoleWeight(userRoleWeight: number | undefined | null, minimumWeight: number): boolean {
+export function rbacHasRoleWeight(
+  userRoleWeight: number | undefined | null,
+  minimumWeight: number,
+): boolean {
   if (userRoleWeight === undefined || userRoleWeight === null) return false;
   return userRoleWeight >= minimumWeight;
 }
@@ -195,15 +190,26 @@ export async function assignRole(userId: number, roleId: string): Promise<boolea
 }
 
 // Assign permission to role
-export async function assignPermissionToRole(roleId: string, permissionId: string): Promise<boolean> {
+export async function assignPermissionToRole(
+  roleId: string,
+  permissionId: string,
+): Promise<boolean> {
   const db = await getDb();
-  
+
   // Check if role and permission exist
   const [role, perm] = await Promise.all([
-    db.select().from(roles).where(eq(roles.id, roleId)).then(r => r[0]),
-    db.select().from(permissions).where(eq(permissions.id, permissionId)).then(r => r[0])
+    db
+      .select()
+      .from(roles)
+      .where(eq(roles.id, roleId))
+      .then((r) => r[0]),
+    db
+      .select()
+      .from(permissions)
+      .where(eq(permissions.id, permissionId))
+      .then((r) => r[0]),
   ]);
-  
+
   if (!role || !perm) return false;
 
   await db.insert(rolePermissions).values({ roleId, permissionId });
@@ -254,23 +260,25 @@ export async function getAllPermissions(): Promise<Permission[]> {
 // Get all roles with their permissions count
 export async function getRolesWithPermissionCounts() {
   const db = await getDb();
-  
-  const rolesData = await db.select({
-    id: roles.id,
-    name: roles.name,
-    description: roles.description,
-    weight: roles.weight,
-    createdAt: roles.createdAt,
-  }).from(roles);
-  
+
+  const rolesData = await db
+    .select({
+      id: roles.id,
+      name: roles.name,
+      description: roles.description,
+      weight: roles.weight,
+      createdAt: roles.createdAt,
+    })
+    .from(roles);
+
   // Get permission counts in parallel
   const countPromises = rolesData.map(async (r) => {
     const permCount = await db
       .select({ count: rolePermissions.permissionId })
       .from(rolePermissions)
       .where(eq(rolePermissions.roleId, r.id))
-      .then(rows => rows[0]?.count ?? 0);
-    
+      .then((rows) => rows[0]?.count ?? 0);
+
     return {
       id: r.id,
       name: r.name,
@@ -280,6 +288,6 @@ export async function getRolesWithPermissionCounts() {
       createdAt: r.createdAt,
     };
   });
-  
+
   return Promise.all(countPromises);
 }

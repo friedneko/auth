@@ -27,8 +27,10 @@ export async function GET({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin") && 
-      !sessionHasPermission(session.user.permissions, PERMISSION.VIEW_STATS)) {
+  if (
+    !rbacHasRole(session.user.role, "admin") &&
+    !sessionHasPermission(session.user.permissions, PERMISSION.VIEW_STATS)
+  ) {
     return jsonResponse({ error: "Forbidden - view_stats permission required" }, 403);
   }
 
