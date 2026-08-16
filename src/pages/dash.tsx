@@ -8,7 +8,13 @@
 import { getSession } from "@/lib/idp/session";
 import { Link } from "waku";
 
-export default async function DashboardPage({ query, headers }: { query: string; headers?: Headers }) {
+export default async function DashboardPage({
+  query,
+  headers,
+}: {
+  query: string;
+  headers?: Headers;
+}) {
   const params = new URLSearchParams(query);
   const error = params.get("error");
 
@@ -144,6 +150,7 @@ export default async function DashboardPage({ query, headers }: { query: string;
   );
 }
 
-export const getConfig = async () => ({
-  render: "dynamic",
-}) as const;
+export const getConfig = async () =>
+  ({
+    render: "dynamic",
+  }) as const;
