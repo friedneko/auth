@@ -5,10 +5,45 @@
  * and account information.
  */
 
+import { getSession } from "@/lib/idp/session";
 import { Link } from "waku";
 
-export default async function DashboardPage({ query }: { query: string }) {
-  const error = new URLSearchParams(query).get("error");
+export default async function DashboardPage({ query, headers }: { query: string; headers?: Headers }) {
+  const params = new URLSearchParams(query);
+  const error = params.get("error");
+
+  // Check if user is logged in
+  const cookieHeader = headers?.get("cookie") ?? "";
+  const session = await getSession(
+    new Request("https://example.com/dash", { headers: { cookie: cookieHeader } }),
+  );
+
+  if (!session) {
+    // Not logged in - show login prompt
+    return (
+      <html lang="en">
+        <head>
+          <meta charSet="utf-8" />
+          <meta name="viewport" content="width=device-width,initial-scale=1" />
+          <title>Dashboard — IDP</title>
+        </head>
+        <body className="bg-gray-50 min-h-screen">
+          <div className="flex min-h-screen items-center justify-center p-4">
+            <div className="text-center">
+              <h1 className="text-3xl font-bold text-gray-900 mb-4">Dashboard</h1>
+              <p className="text-gray-600 mb-8">You need to be logged in to view this page.</p>
+              <Link
+                to="/login"
+                className="inline-block bg-blue-600 text-white px-6 py-3 rounded-md hover:bg-blue-700"
+              >
+                Sign In
+              </Link>
+            </div>
+          </div>
+        </body>
+      </html>
+    );
+  }
 
   return (
     <html lang="en">
@@ -18,106 +53,90 @@ export default async function DashboardPage({ query }: { query: string }) {
         <title>Dashboard — IDP</title>
       </head>
       <body className="bg-gray-50 min-h-screen">
-        <div className="flex min-h-screen items-center justify-center p-4">
-          <div className="w-full max-w-4xl">
-            {/* Header */}
-            <div className="bg-white rounded-lg shadow p-6 mb-6">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
-              <p className="text-gray-600">
-                Welcome to your OAuth IDP dashboard. Manage your clients and view account
-                information.
-              </p>
-            </div>
-
-            {/* Error Alert */}
-            {error && (
-              <div className="mb-4 p-4 bg-red-100 border border-red-400 rounded">
-                <p className="text-red-700 font-medium">Error</p>
-                <p className="text-red-600">{error}</p>
-              </div>
-            )}
-
-            {/* Quick Stats */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-sm font-medium text-gray-500 uppercase">Users</h3>
-                <p className="mt-2 text-3xl font-bold text-gray-900">-</p>
-              </div>
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-sm font-medium text-gray-500 uppercase">Clients</h3>
-                <p className="mt-2 text-3xl font-bold text-gray-900">-</p>
-              </div>
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-sm font-medium text-gray-500 uppercase">Active Sessions</h3>
-                <p className="mt-2 text-3xl font-bold text-gray-900">-</p>
-              </div>
-            </div>
-
-            {/* Navigation Section */}
-            <div className="bg-white rounded-lg shadow p-6 mb-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Actions</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="border rounded-lg p-4">
-                  <h3 className="font-medium text-gray-900 mb-3">Authentication</h3>
-                  <div className="space-y-2">
-                    <Link
-                      to="/login"
-                      className="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                    >
-                      Sign In
-                    </Link>
-                    <Link
-                      to="/signup"
-                      className="block w-full text-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                    >
-                      Sign Up
-                    </Link>
-                    <Link
-                      to="/consent"
-                      className="block w-full text-center px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-                    >
-                      Consent
-                    </Link>
-                  </div>
-                </div>
-
-                <div className="border rounded-lg p-4">
-                  <h3 className="font-medium text-gray-900 mb-3">Admin Tools</h3>
-                  <div className="space-y-2 text-sm text-gray-600">
-                    <p className="p-2 bg-gray-50 rounded">
-                      <span className="font-medium">API Docs:</span>{" "}
-                      /api/.well-known/openid-configuration
-                    </p>
-                    <p className="p-2 bg-gray-50 rounded">
-                      <span className="font-medium">JWKS:</span> /api/jwks
-                    </p>
-                    <p className="p-2 bg-gray-50 rounded">
-                      <span className="font-medium">Logout:</span> /end_session
-                    </p>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Info Section */}
-            <div className="bg-white rounded-lg shadow p-6">
-              <h2 className="text-xl font-semibold text-gray-900 mb-4">System Information</h2>
-              <div className="space-y-3 text-sm text-gray-600">
-                <p>
-                  <span className="font-medium">IDP Type:</span> OAuth 2.1 / OpenID Connect Provider
-                </p>
-                <p>
-                  <span className="font-medium">Token Types:</span> JWT (ES256)
-                </p>
-                <p>
-                  <span className="font-medium">Authentication:</span> Password-based
-                  (PBKDF2-SHA256)
-                </p>
-                <p>
-                  <span className="font-medium">Session:</span> DB-backed with JWT cookie
+        <div className="flex min-h-screen flex-col p-4">
+          {/* Header */}
+          <header className="bg-white rounded-lg shadow p-6 mb-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+                <p className="text-gray-600">
+                  Welcome back, {session.user.name ?? session.user.email}!
                 </p>
               </div>
+              <Link
+                to="/end_session"
+                className="bg-gray-100 text-gray-600 px-4 py-2 rounded-md hover:bg-gray-200"
+              >
+                Sign Out
+              </Link>
             </div>
+          </header>
+
+          {/* Error Alert */}
+          {error && (
+            <div className="mb-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded">
+              <p className="font-medium">Error</p>
+              <p>{error}</p>
+            </div>
+          )}
+
+          {/* User Info */}
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Account Information</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
+              <div>
+                <span className="font-medium text-gray-500">Email:</span>
+                <span className="ml-2 text-gray-900">{session.user.email}</span>
+              </div>
+              <div>
+                <span className="font-medium text-gray-500">Name:</span>
+                <span className="ml-2 text-gray-900">{session.user.name ?? "Not set"}</span>
+              </div>
+              <div>
+                <span className="font-medium text-gray-500">Role:</span>
+                <span className="ml-2 text-gray-900">{session.user.role ?? "None"}</span>
+              </div>
+              <div>
+                <span className="font-medium text-gray-500">User ID:</span>
+                <span className="ml-2 text-gray-900">#{session.user.id}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Client Management */}
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">OAuth Clients</h2>
+            <p className="text-gray-600 mb-4">
+              Manage OAuth clients and applications registered with this IDP.
+            </p>
+            <Link
+              to="/login"
+              className="inline-block bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700"
+            >
+              Continue to Admin Panel
+            </Link>
+          </div>
+
+          {/* Quick Links */}
+          <div className="bg-white rounded-lg shadow p-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">Quick Links</h2>
+            <ul className="space-y-2 text-sm">
+              <li>
+                <Link to="/login" className="text-blue-600 hover:underline">
+                  Sign In
+                </Link>
+              </li>
+              <li>
+                <Link to="/signup" className="text-blue-600 hover:underline">
+                  Sign Up
+                </Link>
+              </li>
+              <li>
+                <Link to="/consent" className="text-blue-600 hover:underline">
+                  Consent
+                </Link>
+              </li>
+            </ul>
           </div>
         </div>
       </body>
@@ -125,7 +144,6 @@ export default async function DashboardPage({ query }: { query: string }) {
   );
 }
 
-export const getConfig = async () =>
-  ({
-    render: "dynamic",
-  }) as const;
+export const getConfig = async () => ({
+  render: "dynamic",
+}) as const;
