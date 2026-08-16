@@ -2,16 +2,20 @@
  * Login page — `GET /login`
  *
  * Renders a login form using shadcn UI components. Posts to `/login/callback`.
+ *
+ * Session redirects (authenticated → /dash) are handled by the middleware
+ * in waku.server.tsx, since Waku v1.0.0-beta.9 does not pass the `headers`
+ * prop to page components.
  */
+
+import { Link } from "waku";
 
 import { Field, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Link } from "waku";
-import { getSession } from "@/lib/idp/session";
 
-export default async function LoginPage({ query, headers }: { query: string; headers?: Headers }) {
+export default async function LoginPage({ query }: { query: string }) {
   const params = new URLSearchParams(query);
   const redirectAfterLogin = params.get("redirect_after_login") ?? "/dash";
   const error = params.get("error");
@@ -21,22 +25,6 @@ export default async function LoginPage({ query, headers }: { query: string; hea
   };
   const errorMessage =
     error && errorMap[error] ? errorMap[error] : error ? "An error occurred." : null;
-
-  // If user is already logged in and no specific redirect requested,
-  // send them to the dashboard
-  if (headers && !params.get("redirect_after_login")) {
-    const cookieHeader = headers.get("cookie") ?? "";
-    const req = new Request("https://idp.local/login", {
-      headers: { cookie: cookieHeader },
-    });
-    const session = await getSession(req);
-    if (session) {
-      return new Response(null, {
-        status: 302,
-        headers: { location: "/dash" },
-      });
-    }
-  }
 
   return (
     <html lang="en">

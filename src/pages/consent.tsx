@@ -4,49 +4,60 @@
  * Shows the user which scopes the client is requesting and asks for
  * approval using shadcn UI components. Posts to `/consent/callback`.
  *
- * SECURITY: Requires a valid session - users without a session will be
- * redirected to login. This page should only be accessed via redirect
- * from the /authorize endpoint after successful login.
+ * SECURITY: The middleware in waku.server.tsx verifies the session and
+ * adds a signed session id (?sid=...&sig=...) to the URL. This component
+ * verifies the signature before proceeding. If the signature is invalid,
+ * the user is redirected to /login.
+ *
+ * Note: Waku v1.0.0-beta.9 does not pass the `headers` prop to page components
+ * on the Cloudflare adapter, so we cannot read cookies directly. Instead,
+ * we rely on the signed session id from the middleware.
  */
 
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { getSession } from "@/lib/idp/session";
+import { getSessionBySid } from "@/lib/idp/session";
+import { verifySignedSessionId } from "@/lib/idp/crypto";
+import { wakuRedirect } from "@/lib/utils";
 
-/** Derive the request origin from the host / forwarded-proto headers. */
-function getOrigin(headers: Headers): string {
-  const host = headers.get("host") ?? "localhost";
-  const proto = headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ?? "http";
-  return `${proto}://${host}`;
-}
+export default async function ConsentPage({ query }: { query: string }) {
+  const params = new URLSearchParams(query);
+  const sid = params.get("sid");
+  const sig = params.get("sig");
 
-export default async function ConsentPage({ query, headers }: { query: string; headers: Headers }) {
-  // SECURITY: Verify user has a valid session before showing consent form.
-  // Use the same JWT + DB verification as getSession to prevent forged or
-  // expired session cookies from reaching the consent page.
-  const cookieHeader = headers.get("cookie") ?? "";
-  const origin = getOrigin(headers);
-  const req = new Request(`${origin}/consent`, {
-    headers: { cookie: cookieHeader },
-  });
-  const session = await getSession(req);
+  // Verify the signed session id from the middleware
+  let sessionUser = null;
+  let sessionUserId: number | null = null;
 
-  if (!session) {
-    // Not authenticated - redirect to login
-    const params = new URLSearchParams(query);
-    const state = params.get("state");
-
-    const loginUrl = new URL("/login", origin);
-    loginUrl.searchParams.set("redirect_after_login", `${origin}/authorize?${query}`);
-    if (state) loginUrl.searchParams.set("state", state);
-
-    return new Response(null, {
-      status: 302,
-      headers: { location: loginUrl.toString() },
-    });
+  if (sid && sig) {
+    const isValid = await verifySignedSessionId(sid, sig);
+    if (isValid) {
+      const session = await getSessionBySid(sid);
+      if (session) {
+        sessionUser = session.user;
+        sessionUserId = session.user.id;
+      }
+    }
   }
 
-  const params = new URLSearchParams(query);
+  // Not authenticated — redirect to login
+  if (!sessionUser) {
+    // Build the authorize URL from the original query params (minus sid/sig)
+    const authParams = new URLSearchParams();
+    for (const [key, value] of params.entries()) {
+      if (key !== "sid" && key !== "sig") {
+        authParams.set(key, value);
+      }
+    }
+
+    const loginUrl = new URL("/login");
+    loginUrl.searchParams.set("redirect_after_login", `/authorize?${authParams.toString()}`);
+    const state = params.get("state");
+    if (state) loginUrl.searchParams.set("state", state);
+
+    wakuRedirect(loginUrl.toString(), 303);
+  }
+
   const clientId = params.get("client_id") ?? "";
   const redirectUri = params.get("redirect_uri") ?? "";
   const scope = params.get("scope") ?? "openid";
@@ -89,6 +100,7 @@ export default async function ConsentPage({ query, headers }: { query: string; h
               <input type="hidden" name="redirect_uri" value={redirectUri} />
               <input type="hidden" name="scope" value={scope} />
               <input type="hidden" name="response_type" value={responseType} />
+              <input type="hidden" name="user_id" value={sessionUserId ?? ""} />
               {state && <input type="hidden" name="state" value={state} />}
               {nonce && <input type="hidden" name="nonce" value={nonce} />}
               {codeChallenge && (

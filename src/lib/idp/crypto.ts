@@ -421,6 +421,47 @@ export function createJwkSetResolver(jwks: { keys: JWK[] }) {
 }
 
 // ---------------------------------------------------------------------------
+// Session ID signing for passing session data via URL query params
+// (Workaround for Waku v1.0.0-beta.9 not passing the `headers` prop to
+// page components on the Cloudflare adapter. The middleware in
+// waku.server.tsx verifies the session JWT, signs the session id with the
+// ES256 signing key (stored in D1, strongly consistent), and adds it as
+// ?sid=...&sig=... query params. Page components verify the signature and
+// look up the session by id from the DB.)
+//
+// We use ES256 (asymmetric) rather than HMAC (symmetric) because the signing
+// key lives in D1 which provides strong read consistency, whereas a separate
+// HMAC key would need to be stored in KV which has eventual consistency.
+// ---------------------------------------------------------------------------
+
+/** Sign a session ID using the ES256 signing key (private key). */
+export async function signSessionId(sid: string): Promise<string> {
+  const signingKey = await getSigningKey();
+  const sig = await crypto.subtle.sign(
+    { name: "ECDSA", hash: "SHA-256" },
+    signingKey.privateKey,
+    encoder.encode(sid),
+  );
+  return bytesToHex(new Uint8Array(sig));
+}
+
+/** Verify a signed session ID using the ES256 signing key (public key). */
+export async function verifySignedSessionId(sid: string, sig: string): Promise<boolean> {
+  const signingKey = await getSigningKey();
+  try {
+    const sigBytes = hexToBytes(sig);
+    return crypto.subtle.verify(
+      { name: "ECDSA", hash: "SHA-256" },
+      signingKey.publicKey,
+      sigBytes as BufferSource,
+      encoder.encode(sid),
+    );
+  } catch {
+    return false;
+  }
+}
+
+// ---------------------------------------------------------------------------
 // PKCE helpers
 // ---------------------------------------------------------------------------
 

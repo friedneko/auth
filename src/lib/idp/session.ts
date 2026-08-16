@@ -251,6 +251,66 @@ export async function getSession(req: Request): Promise<SessionInfo | null> {
 }
 
 /**
+ * Look up a session by its ID from the database (without JWT verification).
+ * This is used after the middleware in waku.server.tsx has already verified
+ * the session JWT cookie and signed the session ID with HMAC.
+ * Returns the session info and user data, or null if not found / expired / revoked.
+ */
+export async function getSessionBySid(sid: string): Promise<SessionInfo | null> {
+  const db = await getDb();
+  const now = new Date();
+  const rows = await db
+    .select()
+    .from(oauthSessions)
+    .where(
+      and(
+        eq(oauthSessions.id, sid),
+        eq(oauthSessions.revoked, 0),
+        gt(oauthSessions.expiresAt, now),
+      ),
+    );
+
+  if (rows.length === 0) return null;
+  const session = rows[0]!;
+
+  // Load user data
+  const userRows = await db
+    .select({
+      id: users.id,
+      email: users.email,
+      name: users.name,
+    })
+    .from(users)
+    .where(eq(users.id, session.userId));
+
+  if (userRows.length === 0) return null;
+  const userRow = userRows[0]!;
+
+  // Get all user permissions (role-based + direct)
+  const { roleInfo, allPermissions } = await getAllUserPermissions(db, session.userId);
+
+  return {
+    session: {
+      id: session.id,
+      userId: session.userId,
+      expiresAt: session.expiresAt,
+      revoked: session.revoked,
+      role: roleInfo?.name,
+      roleWeight: roleInfo?.weight,
+      permissions: allPermissions,
+    },
+    user: {
+      id: userRow.id,
+      email: userRow.email,
+      name: userRow.name,
+      role: roleInfo?.name,
+      roleWeight: roleInfo?.weight,
+      permissions: allPermissions,
+    },
+  };
+}
+
+/**
  * Destroy a session: revoke it in D1.
  */
 export async function destroySession(token: string): Promise<void> {
