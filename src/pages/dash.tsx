@@ -18,11 +18,17 @@ export default async function DashboardPage({
   const params = new URLSearchParams(query);
   const error = params.get("error");
 
-  // Check if user is logged in
-  const cookieHeader = headers?.get("cookie") ?? "";
-  const session = await getSession(
-    new Request("https://example.com/dash", { headers: { cookie: cookieHeader } }),
-  );
+  // Check if user is logged in via session cookie
+  // The cookie contains a signed JWT with session ID and user ID
+  const session = headers
+    ? await getSession(
+        new Request("https://idp.local/dash", {
+          headers: {
+            cookie: headers.get("cookie") ?? "",
+          },
+        }),
+      )
+    : null;
 
   if (!session) {
     // Not logged in - show login prompt
@@ -51,6 +57,7 @@ export default async function DashboardPage({
     );
   }
 
+  // Logged in - show user dashboard
   return (
     <html lang="en">
       <head>
@@ -86,7 +93,7 @@ export default async function DashboardPage({
             </div>
           )}
 
-          {/* User Info */}
+          {/* Account Information */}
           <div className="bg-white rounded-lg shadow p-6 mb-6">
             <h2 className="text-xl font-semibold text-gray-900 mb-4">Account Information</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
@@ -109,11 +116,11 @@ export default async function DashboardPage({
             </div>
           </div>
 
-          {/* Client Management */}
+          {/* OAuth Apps Section */}
           <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h2 className="text-xl font-semibold text-gray-900 mb-4">OAuth Clients</h2>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">OAuth Applications</h2>
             <p className="text-gray-600 mb-4">
-              Manage OAuth clients and applications registered with this IDP.
+              Manage OAuth clients and applications registered with this identity provider.
             </p>
             <Link
               to="/login"
@@ -135,11 +142,6 @@ export default async function DashboardPage({
               <li>
                 <Link to="/signup" className="text-blue-600 hover:underline">
                   Sign Up
-                </Link>
-              </li>
-              <li>
-                <Link to="/consent" className="text-blue-600 hover:underline">
-                  Consent
                 </Link>
               </li>
             </ul>
