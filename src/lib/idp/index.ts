@@ -82,5 +82,5 @@ export {
 export { buildDiscoveryDocument } from "./discovery";
 
 // RBAC utilities
-export { userHasPermission, requestHasPermission, assignRole, getUserRoles } from "./rbac";
+export { userHasPermission, sessionHasPermission, assignRole, getUserRoles } from "./rbac";
 export type { IdpPermission } from "./rbac";

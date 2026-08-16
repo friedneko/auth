@@ -24,6 +24,19 @@ export const POST = async (req: Request): Promise<Response> => {
   const passwordConfirm = formData.get("password_confirm")?.toString() ?? "";
   const redirectAfterLogin = formData.get("redirect_after_login")?.toString() ?? "/";
 
+  // SECURITY: Validate redirect target is same-origin to prevent open redirect.
+  try {
+    const target = new URL(redirectAfterLogin, getIssuer(req));
+    if (target.origin !== getIssuer(req)) {
+      return new Response(
+        `<script>window.location.href = "/signup?error=${encodeURIComponent("Invalid redirect URL")}";</script>`,
+        { status: 400, headers: { "content-type": "text/html; charset=utf-8" } },
+      );
+    }
+  } catch {
+    // Not a valid URL — treat as relative path, which is safe
+  }
+
   // Validate inputs
   if (!email || !password) {
     return new Response(

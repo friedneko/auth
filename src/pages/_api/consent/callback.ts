@@ -1,14 +1,15 @@
 /**
  * Consent callback — `POST /consent/callback`
  *
- * Processes the consent form: if approved, redirects back to /authorize
- * (which will issue the auth code). If denied, redirects to the client's
- * redirect_uri with an error.
+ * Processes the consent form: if approved, records the authorization and
+ * redirects back to /authorize (which will issue the auth code). If denied,
+ * redirects to the client's redirect_uri with an error.
  *
  * SECURITY: Requires valid session to prevent consent hijacking attacks.
  */
 
 import { getSession } from "@/lib/idp/session";
+import { recordAuthorization } from "@/lib/idp/db";
 
 export const POST = async (req: Request): Promise<Response> => {
   // SECURITY: Verify session before processing consent
@@ -44,6 +45,9 @@ export const POST = async (req: Request): Promise<Response> => {
     }
     return new Response("Access denied", { status: 403 });
   }
+
+  // Record the authorization so subsequent authorize requests skip consent
+  await recordAuthorization(session.user.id, clientId);
 
   // Redirect back to /authorize with all params — the session cookie is
   // already set from login, so authorize will issue the code directly.

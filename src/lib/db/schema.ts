@@ -75,6 +75,8 @@ export const oauthGrants = sqliteTable("oauth_grants", {
   redirectUri: text("redirect_uri"), // for authorization_code only
   codeChallenge: text("code_challenge"), // PKCE
   codeChallengeMethod: text("code_challenge_method"), // 'S256' | 'plain'
+  scopes: text("scopes"), // JSON stringified string[] (authorization_code only)
+  nonce: text("nonce"), // OIDC nonce (authorization_code only)
   expiresAt: integer("expires_at", { mode: "timestamp" }),
   consumed: integer("consumed").notNull().default(0),
   createdAt: integer("created_at", { mode: "timestamp" })

@@ -11,18 +11,33 @@
 
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { getSession } from "@/lib/idp/session";
+
+/** Derive the request origin from the host / forwarded-proto headers. */
+function getOrigin(headers: Headers): string {
+  const host = headers.get("host") ?? "localhost";
+  const proto = headers.get("x-forwarded-proto")?.split(",")[0]?.trim() ?? "http";
+  return `${proto}://${host}`;
+}
 
 export default async function ConsentPage({ query, headers }: { query: string; headers: Headers }) {
-  // SECURITY: Verify user has a valid session before showing consent form
+  // SECURITY: Verify user has a valid session before showing consent form.
+  // Use the same JWT + DB verification as getSession to prevent forged or
+  // expired session cookies from reaching the consent page.
   const cookieHeader = headers.get("cookie") ?? "";
+  const origin = getOrigin(headers);
+  const req = new Request(`${origin}/consent`, {
+    headers: { cookie: cookieHeader },
+  });
+  const session = await getSession(req);
 
-  if (!cookieHeader || !cookieHeader.includes("idp_session=")) {
+  if (!session) {
     // Not authenticated - redirect to login
     const params = new URLSearchParams(query);
     const state = params.get("state");
 
-    const loginUrl = new URL("/login", "https://example.com");
-    loginUrl.searchParams.set("redirect_after_login", `https://example.com/authorize?${query}`);
+    const loginUrl = new URL("/login", origin);
+    loginUrl.searchParams.set("redirect_after_login", `${origin}/authorize?${query}`);
     if (state) loginUrl.searchParams.set("state", state);
 
     return new Response(null, {

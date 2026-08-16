@@ -18,6 +18,20 @@ export const POST = async (req: Request): Promise<Response> => {
   const password = formData.get("password")?.toString() ?? "";
   const redirectAfterLogin = formData.get("redirect_after_login")?.toString() ?? "/dash";
 
+  // SECURITY: Validate redirect target is same-origin to prevent open redirect.
+  // Only allow absolute URLs to our own issuer or relative paths.
+  try {
+    const target = new URL(redirectAfterLogin, getIssuer(req));
+    if (target.origin !== getIssuer(req)) {
+      return new Response("Invalid redirect URL.", {
+        status: 400,
+        headers: { "content-type": "text/html; charset=utf-8" },
+      });
+    }
+  } catch {
+    // Not a valid URL — treat as relative path, which is safe
+  }
+
   const db = await getDb();
   const rows = await db
     .select({ id: users.id, email: users.email, passwordHash: users.passwordHash })

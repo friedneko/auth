@@ -58,13 +58,15 @@ export interface SigningKey {
  * Authorization code or refresh token grant record.
  */
 export interface OAuthGrant {
-  id: string; // hash of the code / token
+  id: string; // hash of the code or refresh token
   type: "authorization_code" | "refresh_token";
   clientId: string;
   userId: number;
   redirectUri: string | null;
   codeChallenge: string | null;
   codeChallengeMethod: string | null;
+  scopes: string[] | null; // requested scopes (authorization_code only)
+  nonce: string | null; // OIDC nonce (authorization_code only)
   expiresAt: Date | null;
   consumed: number;
   createdAt: Date;

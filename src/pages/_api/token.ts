@@ -154,6 +154,13 @@ async function handleAuthCode(
 
   const { grant, userId } = result;
 
+  // SECURITY: Validate redirect_uri matches the one stored in the authorization code.
+  // This prevents a code issued for one redirect URI from being exchanged at a
+  // different (but client-registered) redirect URI.
+  if (grant.redirectUri !== redirectUri) {
+    return tokenError(OAUTH_ERROR.invalid_grant, "redirect_uri mismatch (stored code)", 400);
+  }
+
   // Verify PKCE
   if (grant.codeChallenge) {
     const challengeMethod = grant.codeChallengeMethod || "plain";
@@ -170,20 +177,28 @@ async function handleAuthCode(
     }
   }
 
-  const scopes = ["openid", "profile", "email"];
+  // Use scopes from the authorization code (fall back to defaults if not stored)
+  const scopes = grant.scopes ?? ["openid", "profile", "email"];
   const signingKey = await getSigningKey();
   const issuer = getIssuer(req);
   const user = await getUser(userId);
   if (!user) return tokenError(OAUTH_ERROR.invalid_request, "user not found", 400);
 
   const accessToken = await createAccessToken(userId, client.id, scopes, issuer, signingKey);
-  const idToken = await createIdToken(userId, user.email, issuer, client.id, null, signingKey);
+  const idToken = await createIdToken(
+    userId,
+    user.email,
+    issuer,
+    client.id,
+    grant.nonce,
+    signingKey,
+  );
 
   // Refresh token
   const refreshTokenRaw = base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)));
   const refreshTokenHash = await sha256Hex(refreshTokenRaw);
   const refreshExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL * 1000);
-  await saveRefreshToken(refreshTokenHash, client.id, userId, refreshExpiresAt);
+  await saveRefreshToken(refreshTokenHash, client.id, userId, refreshExpiresAt, scopes);
 
   return jsonResponse(
     {
@@ -215,7 +230,7 @@ async function handleRefreshToken(
   if (!result)
     return tokenError(OAUTH_ERROR.invalid_grant, "invalid or expired refresh token", 400);
 
-  const { userId } = result;
+  const { userId, scopes } = result;
   await revokeRefreshToken(refreshTokenHash); // rotate
 
   const signingKey = await getSigningKey();
@@ -223,14 +238,15 @@ async function handleRefreshToken(
   const user = await getUser(userId);
   if (!user) return tokenError(OAUTH_ERROR.invalid_request, "user not found", 400);
 
-  const scopes = ["openid", "profile", "email"];
-  const accessToken = await createAccessToken(userId, client.id, scopes, issuer, signingKey);
+  // Use scopes from the stored refresh token (fall back to defaults if not stored)
+  const tokenScopes = scopes ?? ["openid", "profile", "email"];
+  const accessToken = await createAccessToken(userId, client.id, tokenScopes, issuer, signingKey);
   const idToken = await createIdToken(userId, user.email, issuer, client.id, null, signingKey);
 
   const newRefreshTokenRaw = base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)));
   const newRefreshTokenHash = await sha256Hex(newRefreshTokenRaw);
   const refreshExpiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL * 1000);
-  await saveRefreshToken(newRefreshTokenHash, client.id, userId, refreshExpiresAt);
+  await saveRefreshToken(newRefreshTokenHash, client.id, userId, refreshExpiresAt, tokenScopes);
 
   return jsonResponse(
     {
@@ -239,7 +255,7 @@ async function handleRefreshToken(
       expires_in: ACCESS_TOKEN_TTL,
       id_token: idToken,
       refresh_token: newRefreshTokenRaw,
-      scope: scopes.join(" "),
+      scope: tokenScopes.join(" "),
     },
     200,
   );

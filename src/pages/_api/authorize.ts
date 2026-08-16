@@ -234,7 +234,7 @@ async function issueAuthorizationCode(
   parsed: AuthorizationRequest,
   userId: number,
   redirectUri: string,
-  _scopes: string[],
+  scopes: string[],
 ): Promise<Response> {
   const code = base64UrlEncode(crypto.getRandomValues(new Uint8Array(32)));
   const codeHash = await sha256Hex(code);
@@ -248,6 +248,8 @@ async function issueAuthorizationCode(
     redirectUri,
     codeChallenge: parsed.code_challenge,
     codeChallengeMethod: parsed.code_challenge_method,
+    scopes,
+    nonce: parsed.nonce,
     expiresAt,
   });
 

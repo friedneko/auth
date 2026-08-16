@@ -94,6 +94,8 @@ export async function saveAuthorizationCode(params: {
   redirectUri: string;
   codeChallenge: string | null;
   codeChallengeMethod: string | null;
+  scopes: string[];
+  nonce: string | null;
   expiresAt: Date;
 }): Promise<void> {
   const db = await getDb();
@@ -105,6 +107,8 @@ export async function saveAuthorizationCode(params: {
     redirectUri: params.redirectUri,
     codeChallenge: params.codeChallenge,
     codeChallengeMethod: params.codeChallengeMethod,
+    scopes: JSON.stringify(params.scopes),
+    nonce: params.nonce,
     expiresAt: params.expiresAt,
     consumed: 0,
   });
@@ -128,6 +132,8 @@ export async function consumeAuthorizationCode(
       redirectUri: oauthGrants.redirectUri,
       codeChallenge: oauthGrants.codeChallenge,
       codeChallengeMethod: oauthGrants.codeChallengeMethod,
+      scopes: oauthGrants.scopes,
+      nonce: oauthGrants.nonce,
       expiresAt: oauthGrants.expiresAt,
       consumed: oauthGrants.consumed,
       createdAt: oauthGrants.createdAt,
@@ -155,6 +161,8 @@ export async function consumeAuthorizationCode(
     redirectUri: r.redirectUri,
     codeChallenge: r.codeChallenge,
     codeChallengeMethod: r.codeChallengeMethod,
+    scopes: r.scopes ? JSON.parse(r.scopes) : null,
+    nonce: r.nonce ?? null,
     expiresAt:
       r.expiresAt && typeof r.expiresAt === "number"
         ? new Date(r.expiresAt * 1000)
@@ -179,6 +187,7 @@ export async function saveRefreshToken(
   clientId: string,
   userId: number,
   expiresAt: Date,
+  scopes: string[] = ["openid", "profile", "email"],
 ): Promise<void> {
   const db = await getDb();
   await db.insert(oauthGrants).values({
@@ -189,6 +198,8 @@ export async function saveRefreshToken(
     redirectUri: null,
     codeChallenge: null,
     codeChallengeMethod: null,
+    scopes: JSON.stringify(scopes),
+    nonce: null,
     expiresAt,
     consumed: 0,
   });
@@ -201,11 +212,11 @@ export async function saveRefreshToken(
 export async function getRefreshToken(
   tokenHash: string,
   clientId: string,
-): Promise<{ userId: number } | null> {
+): Promise<{ userId: number; scopes: string[] | null } | null> {
   const db = await getDb();
   const now = new Date();
   const rows = await db
-    .select({ userId: oauthGrants.userId })
+    .select({ userId: oauthGrants.userId, scopes: oauthGrants.scopes })
     .from(oauthGrants)
     .where(
       and(
@@ -218,7 +229,11 @@ export async function getRefreshToken(
     );
 
   if (rows.length === 0) return null;
-  return { userId: rows[0]!.userId };
+  const r = rows[0]!;
+  return {
+    userId: r.userId,
+    scopes: r.scopes ? JSON.parse(r.scopes) : null,
+  };
 }
 
 /** Mark a refresh token as consumed (revoked). */
@@ -259,6 +274,11 @@ export async function getUser(userId: number): Promise<{
 
 /**
  * Check if a user has already authorized a client (auto-approve).
+ *
+ * NOTE: `count(*)` always returns exactly one row (with 0 if no matches), so we
+ * must check the count value, not the array length. The previous implementation
+ * used `result.length > 0` which was *always true* — meaning the consent
+ * screen was silently skipped for every user.
  */
 export async function hasAuthorizedClient(userId: number, clientId: string): Promise<boolean> {
   const db = await getDb();
@@ -266,7 +286,8 @@ export async function hasAuthorizedClient(userId: number, clientId: string): Pro
     .select({ count: sql<number>`count(*)` })
     .from(oauthAuthorizations)
     .where(and(eq(oauthAuthorizations.userId, userId), eq(oauthAuthorizations.clientId, clientId)));
-  return result.length > 0;
+
+  return (result[0]?.count ?? 0) > 0;
 }
 
 /**
