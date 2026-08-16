@@ -156,16 +156,16 @@ export async function POST({ req }: { req: Request }): Promise<Response> {
     with: { userRoles: { with: { role: true } } },
   });
 
-  // Extract role - use any for the complex join type to avoid exactOptionalPropertyTypes issues
-  const userRole = (newUser as any)?.userRoles?.[0]?.role?.name ?? "user";
+  // Extract role from the nested userRoles → role relationship
+  const userRole = newUser?.userRoles?.[0]?.role?.name ?? "user";
 
   return jsonResponse(
     {
-      id: (newUser as any)?.id,
-      email: (newUser as any)?.email,
-      name: (newUser as any)?.name,
+      id: newUser?.id,
+      email: newUser?.email,
+      name: newUser?.name,
       role: userRole,
-      createdAt: (newUser as any)?.createdAt,
+      createdAt: newUser?.createdAt,
     },
     201,
   );

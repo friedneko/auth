@@ -283,7 +283,7 @@ export async function verifyJwt(
 export async function createSessionJwt(
   sessionId: string,
   userId: number,
-  issuer: string,
+  _issuer: string,
   signingKey: { privateKey: CryptoKey; kid: string; alg: string },
 ): Promise<string> {
   const payload: SessionTokenPayload = {

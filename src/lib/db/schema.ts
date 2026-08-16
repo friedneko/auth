@@ -1,5 +1,6 @@
 import { sql } from "drizzle-orm";
 import { integer, sqliteTable, text, primaryKey } from "drizzle-orm/sqlite-core";
+import { relations } from "drizzle-orm/relations";
 
 // ============================================================================
 // OAuth 2.0 / OIDC Tables
@@ -238,6 +239,29 @@ export const apiKeyPermissions = sqliteTable(
 // Schema export
 // ============================================================================
 
+// ============================================================================
+// Relations
+// ============================================================================
+
+export const usersRelations = relations(users, ({ many }) => ({
+  userRoles: many(userRoles),
+}));
+
+export const rolesRelations = relations(roles, ({ many }) => ({
+  userRoles: many(userRoles),
+}));
+
+export const userRolesRelations = relations(userRoles, ({ one }) => ({
+  user: one(users, {
+    fields: [userRoles.userId],
+    references: [users.id],
+  }),
+  role: one(roles, {
+    fields: [userRoles.roleId],
+    references: [roles.id],
+  }),
+}));
+
 export const schema = {
   // OAuth
   users,
@@ -254,4 +278,8 @@ export const schema = {
   // API Keys
   apiKeys,
   apiKeyPermissions,
+  // Relations
+  usersRelations,
+  rolesRelations,
+  userRolesRelations,
 };
