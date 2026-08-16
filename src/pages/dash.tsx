@@ -24,7 +24,8 @@ export default async function DashboardPage({ query }: { query: string }) {
             <div className="bg-white rounded-lg shadow p-6 mb-6">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">Dashboard</h1>
               <p className="text-gray-600">
-                Welcome to your OAuth IDP dashboard. Manage your clients and view account information.
+                Welcome to your OAuth IDP dashboard. Manage your clients and view account
+                information.
               </p>
             </div>
 
@@ -59,19 +60,19 @@ export default async function DashboardPage({ query }: { query: string }) {
                 <div className="border rounded-lg p-4">
                   <h3 className="font-medium text-gray-900 mb-3">Authentication</h3>
                   <div className="space-y-2">
-                    <Link 
-                      to="/login" 
+                    <Link
+                      to="/login"
                       className="block w-full text-center px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
                     >
                       Sign In
                     </Link>
-                    <Link 
-                      to="/signup" 
+                    <Link
+                      to="/signup"
                       className="block w-full text-center px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
                     >
                       Sign Up
                     </Link>
-                    <Link 
+                    <Link
                       to="/consent"
                       className="block w-full text-center px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
                     >
@@ -84,7 +85,8 @@ export default async function DashboardPage({ query }: { query: string }) {
                   <h3 className="font-medium text-gray-900 mb-3">Admin Tools</h3>
                   <div className="space-y-2 text-sm text-gray-600">
                     <p className="p-2 bg-gray-50 rounded">
-                      <span className="font-medium">API Docs:</span> /api/.well-known/openid-configuration
+                      <span className="font-medium">API Docs:</span>{" "}
+                      /api/.well-known/openid-configuration
                     </p>
                     <p className="p-2 bg-gray-50 rounded">
                       <span className="font-medium">JWKS:</span> /api/jwks
@@ -108,7 +110,8 @@ export default async function DashboardPage({ query }: { query: string }) {
                   <span className="font-medium">Token Types:</span> JWT (ES256)
                 </p>
                 <p>
-                  <span className="font-medium">Authentication:</span> Password-based (PBKDF2-SHA256)
+                  <span className="font-medium">Authentication:</span> Password-based
+                  (PBKDF2-SHA256)
                 </p>
                 <p>
                   <span className="font-medium">Session:</span> DB-backed with JWT cookie
@@ -122,6 +125,7 @@ export default async function DashboardPage({ query }: { query: string }) {
   );
 }
 
-export const getConfig = async () => ({
-  render: "dynamic",
-}) as const;
+export const getConfig = async () =>
+  ({
+    render: "dynamic",
+  }) as const;
