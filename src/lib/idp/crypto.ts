@@ -34,6 +34,16 @@ const encoder = new TextEncoder();
 // Hex / base64url encoding helpers
 // ---------------------------------------------------------------------------
 
+/** Constant-time string comparison to prevent timing attacks. */
+export function safeEqual(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let diff = 0;
+  for (let i = 0; i < a.length; i++) {
+    diff |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return diff === 0;
+}
+
 export function base64UrlEncode(bytes: Uint8Array | ArrayBuffer): string {
   let str = "";
   const buf = bytes instanceof ArrayBuffer ? new Uint8Array(bytes) : bytes;
@@ -100,7 +110,7 @@ export async function verifyPassword(password: string, stored: string): Promise<
     key,
     256,
   );
-  return bytesToHex(new Uint8Array(bits)) === hashHex;
+  return safeEqual(bytesToHex(new Uint8Array(bits)), hashHex);
 }
 
 // ---------------------------------------------------------------------------
@@ -434,10 +444,10 @@ export async function verifyPkce(
 ): Promise<boolean> {
   if (method === "S256") {
     const computed = base64UrlEncode(await sha256Bytes(verifier));
-    return computed === challenge;
+    return safeEqual(computed, challenge);
   }
   if (method === "plain") {
-    return verifier === challenge;
+    return safeEqual(verifier, challenge);
   }
   return false;
 }

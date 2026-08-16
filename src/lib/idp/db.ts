@@ -115,10 +115,11 @@ export async function saveAuthorizationCode(params: {
 }
 
 /**
- * Load and validate an authorization code. Checks expiry and consumption.
- * Returns the grant row + user id if valid.
+ * Load and validate an authorization code without consuming it.
+ * Use this when you need to verify PKCE or other conditions before
+ * deciding to consume (mark as used) the code.
  */
-export async function consumeAuthorizationCode(
+export async function getAuthorizationCode(
   codeHash: string,
 ): Promise<{ grant: OAuthGrant; userId: number } | null> {
   const db = await getDb();
@@ -151,8 +152,6 @@ export async function consumeAuthorizationCode(
   if (rows.length === 0) return null;
   const r = rows[0]!;
 
-  await db.update(oauthGrants).set({ consumed: 1 }).where(eq(oauthGrants.id, codeHash));
-
   const grant: OAuthGrant = {
     id: r.id,
     type: r.type as "authorization_code" | "refresh_token",
@@ -172,6 +171,20 @@ export async function consumeAuthorizationCode(
   };
 
   return { grant, userId: r.userId };
+}
+
+/**
+ * Mark an authorization code as consumed (used). Call only AFTER all
+ * validations (redirect_uri, PKCE) have passed.
+ *
+ * SECURITY: Previously this was combined with the lookup in
+ * `consumeAuthorizationCode`, which meant PKCE failures would still
+ * consume (invalidate) the code — enabling a DoS where an attacker could
+ * invalidate a victim's code by sending a wrong PKCE verifier.
+ */
+export async function markCodeConsumed(codeHash: string): Promise<void> {
+  const db = await getDb();
+  await db.update(oauthGrants).set({ consumed: 1 }).where(eq(oauthGrants.id, codeHash));
 }
 
 // ---------------------------------------------------------------------------

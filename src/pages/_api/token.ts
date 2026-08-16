@@ -14,12 +14,13 @@ import {
   verifySecret,
 } from "@/lib/idp/crypto";
 import {
-  consumeAuthorizationCode,
   saveRefreshToken,
   getRefreshToken,
   revokeRefreshToken,
   getClient,
   getUser,
+  getAuthorizationCode,
+  markCodeConsumed,
 } from "@/lib/idp/db";
 import { GRANT_TYPE, OAUTH_ERROR, REFRESH_TOKEN_TTL, ACCESS_TOKEN_TTL } from "@/lib/idp/constants";
 import { getIssuer } from "@/lib/env";
@@ -99,16 +100,18 @@ export const POST = async (req: Request): Promise<Response> => {
 
   const client = await getClient(clientId);
   if (!client) {
-    return tokenError(OAUTH_ERROR.invalid_client, "Unknown client", 401);
+    // SECURITY: Use the same error message for unknown client and invalid secret
+    // to prevent client_id enumeration via error message differences.
+    return tokenError(OAUTH_ERROR.invalid_client, "Client authentication failed", 401);
   }
 
   const isPublic = client.tokenEndpointAuthMethod === "none";
   if (!isPublic) {
     if (!client.secretHash) {
-      return tokenError(OAUTH_ERROR.invalid_client, "Client has no secret", 401);
+      return tokenError(OAUTH_ERROR.invalid_client, "Client authentication failed", 401);
     }
     if (!clientSecret || !(await verifySecret(clientSecret, client.secretHash))) {
-      return tokenError(OAUTH_ERROR.invalid_client, "Invalid client secret", 401);
+      return tokenError(OAUTH_ERROR.invalid_client, "Client authentication failed", 401);
     }
   }
 
@@ -148,7 +151,14 @@ async function handleAuthCode(
   }
 
   const codeHash = await sha256Hex(code);
-  const result = await consumeAuthorizationCode(codeHash);
+
+  // SECURITY: Look up the code WITHOUT consuming it first. We must verify
+  // redirect_uri and PKCE BEFORE marking the code as consumed. Previously,
+  // consumeAuthorizationCode would mark the code as consumed immediately,
+  // meaning a wrong PKCE verifier would invalidate the code — enabling a
+  // DoS where an attacker could invalidate a victim's auth code by sending
+  // a wrong code_verifier.
+  const result = await getAuthorizationCode(codeHash);
   if (!result)
     return tokenError(OAUTH_ERROR.invalid_grant, "invalid or expired authorization code", 400);
 
@@ -161,7 +171,7 @@ async function handleAuthCode(
     return tokenError(OAUTH_ERROR.invalid_grant, "redirect_uri mismatch (stored code)", 400);
   }
 
-  // Verify PKCE
+  // Verify PKCE — BEFORE consuming the code
   if (grant.codeChallenge) {
     const challengeMethod = grant.codeChallengeMethod || "plain";
     const challenge =
@@ -176,6 +186,9 @@ async function handleAuthCode(
       return tokenError(OAUTH_ERROR.invalid_grant, "PKCE verification failed", 400);
     }
   }
+
+  // All validations passed — now mark the code as consumed
+  await markCodeConsumed(codeHash);
 
   // Use scopes from the authorization code (fall back to defaults if not stored)
   const scopes = grant.scopes ?? ["openid", "profile", "email"];
