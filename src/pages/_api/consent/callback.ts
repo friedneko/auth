@@ -4,9 +4,22 @@
  * Processes the consent form: if approved, redirects back to /authorize
  * (which will issue the auth code). If denied, redirects to the client's
  * redirect_uri with an error.
+ *
+ * SECURITY: Requires valid session to prevent consent hijacking attacks.
  */
 
+import { getSession } from "@/lib/idp/session";
+
 export const POST = async (req: Request): Promise<Response> => {
+  // SECURITY: Verify session before processing consent
+  const session = await getSession(req);
+  if (!session) {
+    return new Response(
+      JSON.stringify({ error: "not_authenticated", error_description: "Session expired or invalid" }),
+      { status: 401, headers: { "content-type": "application/json" } }
+    );
+  }
+
   const formData = await req.formData();
   const clientId = formData.get("client_id")?.toString() ?? "";
   const redirectUri = formData.get("redirect_uri")?.toString() ?? "";

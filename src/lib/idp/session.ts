@@ -4,31 +4,41 @@
  * A session has two parts:
  * 1. A row in the `oauth_sessions` D1 table (server-side state: revocation,
  *    expiry, user binding).
- * 2. A signed JWT in an httpOnly cookie that contains the session id (`sid`),
- *    user id (`uid`), and primary `role` (if any). The JWT provides tamper-proof
- *    transport; the DB row provides server-side revocation and introspection.
+ * 2. A signed JWT in an httpOnly cookie that contains only the session id (`sid`)
+ *    and user id (`uid`). Role is fetched from DB on each request for security.
+ *    The JWT provides tamper-proof transport; the DB row provides server-side
+ *    revocation and introspection.
  *
  * When verifying a request we:
  *   1. Check the session cookie for a JWT.
  *   2. Verify the JWT signature.
  *   3. Extract the `sid` from the JWT payload.
  *   4. Look up the `sid` in D1 to check `revoked` / `expired`.
+ *   5. Fetch user's role and ALL permissions from DB (role-based + direct).
  */
 
 import { createId } from "@/lib/utils";
 import { getSigningKey, createSessionJwt, verifySessionJwt } from "./crypto";
 import { getDb } from "../env";
 import { getSessionToken } from "./cookies";
-import { oauthSessions, users, userRoles, roles } from "@/lib/db/schema";
-import { and, eq, gt } from "drizzle-orm";
+import { oauthSessions, users, userRoles, roles, permissions, rolePermissions, userPermissions } from "@/lib/db/schema";
+import { and, eq, gt, desc } from "drizzle-orm";
 import { SESSION_TTL } from "./constants";
+
+/** User role info with weight for hierarchy comparisons. */
+export interface UserRoleInfo {
+  name: string;
+  weight: number;
+}
 
 /** The authenticated user info. */
 export interface AuthenticatedUser {
   id: number;
   email: string;
   name: string | null;
-  role?: string | undefined; // optional with undefined to satisfy exactOptionalPropertyTypes
+  role?: string | undefined;
+  roleWeight?: number | undefined;
+  permissions?: string[] | undefined;
 }
 
 /** Full session info returned by getSession. */
@@ -39,44 +49,105 @@ export interface SessionInfo {
     expiresAt: Date;
     revoked: number;
     role?: string | undefined;
+    roleWeight?: number | undefined;
+    permissions?: string[] | undefined;
   };
   user: AuthenticatedUser;
 }
 
 /**
- * Get the user's primary role.
- * Returns undefined if user has no role assigned.
+ * Get the user's primary role (highest weight assigned role).
+ * Returns the role name, weight, and role-based permission IDs.
+ * Admin automatically gets all permissions.
  */
 async function getUserPrimaryRole(
   db: Awaited<ReturnType<typeof getDb>>,
   userId: number,
-): Promise<string | undefined> {
-  // Check if user has admin role
-  const adminRoleRows = await db
-    .select({ name: roles.name, roleId: userRoles.roleId })
-    .from(userRoles)
-    .innerJoin(roles, eq(userRoles.roleId, roles.id))
-    .where(eq(userRoles.userId, userId));
-
-  for (const row of adminRoleRows) {
-    if (row.name === "admin") return "admin";
-  }
-
-  // Get first assigned role (ordered by name for consistency)
-  const userRole = await db
-    .select({ name: roles.name })
+): Promise<{ name: string | undefined; weight: number; permissionIds: string[] } | undefined> {
+  // Get user's roles with weights
+  const userRoleRows = await db
+    .select({ 
+      name: roles.name, 
+      weight: roles.weight,
+      id: roles.id
+    })
     .from(userRoles)
     .innerJoin(roles, eq(userRoles.roleId, roles.id))
     .where(eq(userRoles.userId, userId))
-    .orderBy(roles.name)
+    .orderBy(desc(roles.weight))
     .limit(1);
 
-  return userRole[0]?.name;
+  if (!userRoleRows[0]) return undefined;
+  
+  const roleRow = userRoleRows[0];
+  
+  // Admin role gets all permissions via wildcard check
+  if (roleRow.name === "admin") {
+    const allPerms = await db.select({ id: permissions.id }).from(permissions);
+    return {
+      name: roleRow.name,
+      weight: roleRow.weight,
+      permissionIds: allPerms.map(p => p.id),
+    };
+  }
+  
+  // Get permissions for this role
+  const permRows = await db
+    .select({ permId: permissions.id })
+    .from(rolePermissions)
+    .innerJoin(permissions, eq(rolePermissions.permissionId, permissions.id))
+    .innerJoin(roles, eq(rolePermissions.roleId, roles.id))
+    .where(eq(roles.id, roleRow.id));
+  
+  return {
+    name: roleRow.name,
+    weight: roleRow.weight,
+    permissionIds: permRows.map(p => p.permId),
+  };
+}
+
+/**
+ * Get all direct user permissions (not role-based).
+ */
+async function getUserDirectPermissions(
+  db: Awaited<ReturnType<typeof getDb>>,
+  userId: number,
+): Promise<string[]> {
+  const directPerms = await db
+    .select({ permId: permissions.id })
+    .from(userPermissions)
+    .innerJoin(permissions, eq(userPermissions.permissionId, permissions.id))
+    .where(eq(userPermissions.userId, userId));
+  
+  return directPerms.map(p => p.permId);
+}
+
+/**
+ * Get all permissions for a user (role-based + direct).
+ */
+async function getAllUserPermissions(
+  db: Awaited<ReturnType<typeof getDb>>,
+  userId: number,
+): Promise<{ roleInfo: { name: string; weight: number } | undefined; allPermissions: string[] }> {
+  const roleInfo = await getUserPrimaryRole(db, userId);
+  const directPerms = await getUserDirectPermissions(db, userId);
+  
+  // Combine role-based and direct permissions (union)
+  const allPermsSet = new Set<string>();
+  if (roleInfo?.permissionIds) {
+    roleInfo.permissionIds.forEach(p => allPermsSet.add(p));
+  }
+  directPerms.forEach(p => allPermsSet.add(p));
+  
+  return {
+    roleInfo: roleInfo && roleInfo.name ? { name: roleInfo.name, weight: roleInfo.weight } : undefined,
+    allPermissions: Array.from(allPermsSet),
+  };
 }
 
 /**
  * Create a new session for a user and return the session JWT to store in a
- * cookie. The JWT includes the user's primary role for authorization decisions.
+ * cookie.
  */
 export async function createSession(
   userId: number,
@@ -87,9 +158,6 @@ export async function createSession(
   const sessionId = createId();
   const expiresAt = new Date(Date.now() + SESSION_TTL * 1000);
 
-  // Get user's primary role
-  const role = await getUserPrimaryRole(db, userId);
-
   await db.insert(oauthSessions).values({
     id: sessionId,
     userId,
@@ -97,7 +165,7 @@ export async function createSession(
     revoked: 0,
   });
 
-  const token = await createSessionJwt(sessionId, userId, issuer, signingKey, role);
+  const token = await createSessionJwt(sessionId, userId, issuer, signingKey);
 
   return { token, sessionId };
 }
@@ -105,7 +173,7 @@ export async function createSession(
 /**
  * Verify the session JWT from the request cookies, then validate the session
  * against the DB. Returns the authenticated user + session info, or null.
- * Also loads the user's current role from DB (in case it changed).
+ * Loads role and ALL permissions (role-based + direct) from DB.
  */
 export async function getSession(req: Request): Promise<SessionInfo | null> {
   const token = getSessionToken(req);
@@ -149,8 +217,8 @@ export async function getSession(req: Request): Promise<SessionInfo | null> {
   if (userRows.length === 0) return null;
   const userRow = userRows[0]!;
 
-  // Get current role from DB (in case it changed)
-  const role = await getUserPrimaryRole(db, uid);
+  // Get all user permissions (role-based + direct)
+  const { roleInfo, allPermissions } = await getAllUserPermissions(db, uid);
 
   return {
     session: {
@@ -158,13 +226,17 @@ export async function getSession(req: Request): Promise<SessionInfo | null> {
       userId: session.userId,
       expiresAt: session.expiresAt,
       revoked: session.revoked,
-      role: role ?? undefined,
+      role: roleInfo?.name,
+      roleWeight: roleInfo?.weight,
+      permissions: allPermissions,
     },
     user: {
       id: userRow.id,
       email: userRow.email,
       name: userRow.name,
-      role: role ?? undefined,
+      role: roleInfo?.name,
+      roleWeight: roleInfo?.weight,
+      permissions: allPermissions,
     },
   };
 }

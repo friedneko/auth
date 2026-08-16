@@ -1,6 +1,10 @@
 import { sql } from "drizzle-orm";
 import { integer, sqliteTable, text, primaryKey } from "drizzle-orm/sqlite-core";
 
+// ============================================================================
+// OAuth 2.0 / OIDC Tables
+// ============================================================================
+
 /**
  * Users table — extended with a password hash for local IDP authentication.
  */
@@ -114,27 +118,67 @@ export const oauthAuthorizations = sqliteTable(
   }),
 );
 
-export const schema = {
-  users,
-  oauthClients,
-  oauthSessions,
-  oauthGrants,
-  oauthKeys,
-  oauthAuthorizations,
-};
+// ============================================================================
+// RBAC Tables (Normalized)
+// ============================================================================
 
-// ---------------------------------------------------------------------------
-// RBAC Tables
-// ---------------------------------------------------------------------------
-
+/**
+ * Roles table with weight for role hierarchy.
+ * Higher weight = higher priority role.
+ */
 export const roles = sqliteTable("roles", {
   id: text("id").primaryKey(),
   name: text("name").notNull().unique(),
   description: text("description"),
-  permissions: text("permissions").notNull().default("{}"), // JSON: {"can_manage_clients": true, ...}
+  weight: integer("weight").notNull().default(0),
   createdAt: integer("created_at").notNull().default(1),
 });
 
+/**
+ * Permissions table - each permission has a unique ID and name.
+ */
+export const permissions = sqliteTable("permissions", {
+  id: text("id").primaryKey(), // e.g., "manage_users", "view_stats"
+  name: text("name").notNull().unique(),
+  description: text("description"),
+  createdAt: integer("created_at").notNull().default(1),
+});
+
+/** Join table between roles and permissions */
+export const rolePermissions = sqliteTable(
+  "role_permissions",
+  {
+    roleId: text("role_id")
+      .notNull()
+      .references(() => roles.id, { onDelete: "cascade" }),
+    permissionId: text("permission_id")
+      .notNull()
+      .references(() => permissions.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at").notNull().default(1),
+  },
+  (t) => ({
+    pk: primaryKey(t.roleId, t.permissionId),
+  }),
+);
+
+/** Join table between users and their direct (non-role-based) permissions */
+export const userPermissions = sqliteTable(
+  "user_permissions",
+  {
+    userId: integer("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    permissionId: text("permission_id")
+      .notNull()
+      .references(() => permissions.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at").notNull().default(1),
+  },
+  (t) => ({
+    pk: primaryKey(t.userId, t.permissionId),
+  }),
+);
+
+/** Join table between users and their roles */
 export const userRoles = sqliteTable(
   "user_roles",
   {
@@ -150,3 +194,62 @@ export const userRoles = sqliteTable(
     pk: primaryKey(t.userId, t.roleId),
   }),
 );
+
+// ============================================================================
+// API Keys
+// ============================================================================
+
+/**
+ * API Keys for programmatic access.
+ * Keys start with 'meow_' prefix for easy identification.
+ * The actual key value is hashed (SHA-256) before storage.
+ */
+export const apiKeys = sqliteTable("api_keys", {
+  id: text("id").primaryKey(), // UUID for internal reference
+  keyHash: text("key_hash").notNull(), // SHA-256 hash of meow_ prefixed key
+  name: text("name"), // Human-readable name (optional)
+  userId: integer("user_id")
+    .notNull()
+    .references(() => users.id, { onDelete: "cascade" }),
+  createdAt: integer("created_at").notNull().default(1),
+  updatedAt: integer("updated_at").notNull().default(1),
+});
+
+/** Join table between API keys and permissions */
+export const apiKeyPermissions = sqliteTable(
+  "api_key_permissions",
+  {
+    apiKeyId: text("api_key_id")
+      .notNull()
+      .references(() => apiKeys.id, { onDelete: "cascade" }),
+    permissionId: text("permission_id")
+      .notNull()
+      .references(() => permissions.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at").notNull().default(1),
+  },
+  (t) => ({
+    pk: primaryKey(t.apiKeyId, t.permissionId),
+  }),
+);
+
+// ============================================================================
+// Schema export
+// ============================================================================
+
+export const schema = {
+  // OAuth
+  users,
+  oauthClients,
+  oauthSessions,
+  oauthGrants,
+  oauthKeys,
+  oauthAuthorizations,
+  // RBAC
+  permissions,
+  rolePermissions,
+  userPermissions,
+  userRoles,
+  // API Keys
+  apiKeys,
+  apiKeyPermissions,
+};

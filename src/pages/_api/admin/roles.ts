@@ -1,14 +1,15 @@
 /**
  * Admin REST API: Roles management
  *
- * Protected by session JWT. User must have 'admin' role.
+ * Protected by session JWT. Requires 'configure' permission.
+ * Note: Role permission assignments are managed separately through /admin/permissions
  */
 
 import { getSession } from "@/lib/idp/session";
 import { getDb } from "@/lib/env";
 import { roles } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { rbacHasRole } from "@/lib/idp/rbac";
+import { rbacHasRole, sessionHasPermission, PERMISSION } from "@/lib/idp/rbac";
 
 /** Helper to return JSON response */
 function jsonResponse(obj: unknown, status = 200): Response {
@@ -28,18 +29,19 @@ export async function GET({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin")) {
-    return jsonResponse({ error: "Forbidden - admin required" }, 403);
+  if (!rbacHasRole(session.user.role, "admin") && 
+      !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)) {
+    return jsonResponse({ error: "Forbidden - configure permission required" }, 403);
   }
 
   const db = await getDb();
-  const roleList = await db.select().from(roles);
+  const roleList = await db.query.roles.findMany();
 
   return jsonResponse({ roles: roleList });
 }
 
 // ---------------------------------------------------------------------------
-// POST /admin/roles - Create role
+// POST /admin/roles - Create role (without permission assignment)
 // ---------------------------------------------------------------------------
 
 export async function POST({ req }: { req: Request }): Promise<Response> {
@@ -48,16 +50,17 @@ export async function POST({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin")) {
-    return jsonResponse({ error: "Forbidden - admin required" }, 403);
+  if (!rbacHasRole(session.user.role, "admin") && 
+      !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)) {
+    return jsonResponse({ error: "Forbidden - configure permission required" }, 403);
   }
 
   const body = (await req.json()) as {
     name: string;
     description?: string;
-    permissions?: Record<string, boolean>;
+    weight?: number;
   };
-  const { name, description, permissions } = body;
+  const { name, description, weight } = body;
 
   if (!name) {
     return jsonResponse({ error: "Role name is required" }, 400);
@@ -70,17 +73,25 @@ export async function POST({ req }: { req: Request }): Promise<Response> {
   }
 
   const roleId = crypto.randomUUID();
+  const now = Math.floor(Date.now() / 1000);
+  
   await db.insert(roles).values({
     id: roleId,
     name,
     description: description ?? null,
-    permissions: JSON.stringify(permissions ?? {}),
-    createdAt: Math.floor(Date.now() / 1000),
+    weight: weight ?? 0,
+    createdAt: now,
   });
 
-  const newRole = await db.query.roles.findFirst({ where: eq(roles.name, name) });
+  const newRole = await db.query.roles.findFirst({ where: eq(roles.id, roleId) });
 
-  return jsonResponse(newRole, 201);
+  return jsonResponse({
+    id: newRole?.id,
+    name: newRole?.name,
+    description: newRole?.description,
+    weight: newRole?.weight,
+    createdAt: newRole?.createdAt,
+  }, 201);
 }
 
 export const getConfig = async () => ({ render: "dynamic" }) as const;

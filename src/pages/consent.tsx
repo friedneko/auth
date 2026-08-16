@@ -3,12 +3,34 @@
  *
  * Shows the user which scopes the client is requesting and asks for
  * approval using shadcn UI components. Posts to `/consent/callback`.
+ *
+ * SECURITY: Requires a valid session - users without a session will be
+ * redirected to login. This page should only be accessed via redirect
+ * from the /authorize endpoint after successful login.
  */
 
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-export default async function ConsentPage({ query }: { query: string }) {
+export default async function ConsentPage({ query, headers }: { query: string; headers: Headers }) {
+  // SECURITY: Verify user has a valid session before showing consent form
+  const cookieHeader = headers.get("cookie") ?? "";
+  
+  if (!cookieHeader || !cookieHeader.includes("idp_session=")) {
+    // Not authenticated - redirect to login
+    const params = new URLSearchParams(query);
+    const state = params.get("state");
+
+    const loginUrl = new URL("/login", "https://example.com");
+    loginUrl.searchParams.set("redirect_after_login", `https://example.com/authorize?${query}`);
+    if (state) loginUrl.searchParams.set("state", state);
+
+    return new Response(null, {
+      status: 302,
+      headers: { location: loginUrl.toString() }
+    });
+  }
+
   const params = new URLSearchParams(query);
   const clientId = params.get("client_id") ?? "";
   const redirectUri = params.get("redirect_uri") ?? "";

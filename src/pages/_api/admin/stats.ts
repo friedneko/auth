@@ -1,13 +1,13 @@
 /**
  * Admin REST API: Statistics and health checks
  *
- * Protected by session JWT. User must have 'admin' role.
+ * Protected by session JWT. Requires 'view_stats' permission.
  */
 
 import { getSession } from "@/lib/idp/session";
 import { getDb } from "@/lib/env";
 import { users, roles, oauthSessions, oauthGrants, oauthClients } from "@/lib/db/schema";
-import { rbacHasRole } from "@/lib/idp/rbac";
+import { rbacHasRole, sessionHasPermission, PERMISSION } from "@/lib/idp/rbac";
 
 /** Helper to return JSON response */
 function jsonResponse(obj: unknown, status = 200): Response {
@@ -27,8 +27,9 @@ export async function GET({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin")) {
-    return jsonResponse({ error: "Forbidden - admin required" }, 403);
+  if (!rbacHasRole(session.user.role, "admin") && 
+      !sessionHasPermission(session.user.permissions, PERMISSION.VIEW_STATS)) {
+    return jsonResponse({ error: "Forbidden - view_stats permission required" }, 403);
   }
 
   const db = await getDb();

@@ -35,12 +35,11 @@ export interface OAuthSessionRecord {
 
 /**
  * JWT payload for the session cookie.
- * Contains session id, user id, and primary role for authorization decisions.
+ * Contains only session id and user id. Role is fetched from DB on each request.
  */
 export interface SessionTokenPayload extends JWTPayload {
   sid: string; // session id in D1
   uid: number; // user id
-  role?: string; // primary role (optional - if not present, check DB)
 }
 
 /**

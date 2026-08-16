@@ -1,14 +1,14 @@
 /**
  * Admin REST API: Assign role to user
  *
- * Protected by session JWT. User must have 'admin' role.
+ * Protected by session JWT. Requires 'configure' permission.
  */
 
 import { getSession } from "@/lib/idp/session";
 import { getDb } from "@/lib/env";
 import { users, roles, userRoles } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { rbacHasRole } from "@/lib/idp/rbac";
+import { rbacHasRole, sessionHasPermission, PERMISSION } from "@/lib/idp/rbac";
 
 /** Helper to return JSON response */
 function jsonResponse(obj: unknown, status = 200): Response {
@@ -28,8 +28,9 @@ export async function POST({ req }: { req: Request }): Promise<Response> {
     return jsonResponse({ error: "Not authenticated" }, 401);
   }
 
-  if (!rbacHasRole(session.user.role, "admin")) {
-    return jsonResponse({ error: "Forbidden - admin required" }, 403);
+  if (!rbacHasRole(session.user.role, "admin") && 
+      !sessionHasPermission(session.user.permissions, PERMISSION.CONFIGURE)) {
+    return jsonResponse({ error: "Forbidden - configure permission required" }, 403);
   }
 
   const body = (await req.json()) as { userId: string; role: string };
