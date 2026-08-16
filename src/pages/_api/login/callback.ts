@@ -16,7 +16,7 @@ export const POST = async (req: Request): Promise<Response> => {
   const formData = await req.formData();
   const email = formData.get("email")?.toString() ?? "";
   const password = formData.get("password")?.toString() ?? "";
-  const redirectAfterLogin = formData.get("redirect_after_login")?.toString() ?? "/";
+  const redirectAfterLogin = formData.get("redirect_after_login")?.toString() ?? "/dash";
 
   const db = await getDb();
   const rows = await db

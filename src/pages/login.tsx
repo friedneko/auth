@@ -9,10 +9,11 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Link } from "waku";
+import { getSession } from "@/lib/idp/session";
 
-export default async function LoginPage({ query }: { query: string }) {
+export default async function LoginPage({ query, headers }: { query: string; headers?: Headers }) {
   const params = new URLSearchParams(query);
-  const redirectAfterLogin = params.get("redirect_after_login") ?? "/";
+  const redirectAfterLogin = params.get("redirect_after_login") ?? "/dash";
   const error = params.get("error");
 
   const errorMap: Record<string, string> = {
@@ -20,6 +21,22 @@ export default async function LoginPage({ query }: { query: string }) {
   };
   const errorMessage =
     error && errorMap[error] ? errorMap[error] : error ? "An error occurred." : null;
+
+  // If user is already logged in and no specific redirect requested,
+  // send them to the dashboard
+  if (headers && !params.get("redirect_after_login")) {
+    const cookieHeader = headers.get("cookie") ?? "";
+    const req = new Request("https://idp.local/login", {
+      headers: { cookie: cookieHeader },
+    });
+    const session = await getSession(req);
+    if (session) {
+      return new Response(null, {
+        status: 302,
+        headers: { location: "/dash" },
+      });
+    }
+  }
 
   return (
     <html lang="en">
