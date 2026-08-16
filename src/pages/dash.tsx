@@ -2,7 +2,7 @@
  * Dashboard — `GET /dash`
  *
  * Shows a dashboard for logged-in users to view their OAuth clients
- * and account information.
+ * and account information. If not logged in, shows login prompt.
  */
 
 import { getSession } from "@/lib/idp/session";
@@ -13,22 +13,18 @@ export default async function DashboardPage({
   headers,
 }: {
   query: string;
-  headers?: Headers;
+  headers: Headers;
 }) {
   const params = new URLSearchParams(query);
   const error = params.get("error");
 
-  // Check if user is logged in via session cookie
-  // The cookie contains a signed JWT with session ID and user ID
-  const session = headers
-    ? await getSession(
-        new Request("https://idp.local/dash", {
-          headers: {
-            cookie: headers.get("cookie") ?? "",
-          },
-        }),
-      )
-    : null;
+  // Check for existing session in cookie
+  const cookieHeader = headers.get("cookie") ?? "";
+  const session = await getSession(
+    new Request("https://idp.local/dash", {
+      headers: { cookie: cookieHeader },
+    }),
+  );
 
   if (!session) {
     // Not logged in - show login prompt
